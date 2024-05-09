@@ -669,18 +669,24 @@ export class VoteProgram {
   ): Transaction {
     const { voteAccount, voteAuthority, voteStateUpdate: { lockouts, root, hash, timestamp } } = params;
     const type = VOTE_INSTRUCTION_LAYOUTS.CompactUpdateVoteState;
-    const data = encodeData(type, {
+    let currentSlot = root;
+    const rawData = {
       voteStateUpdate: {
-        lockoutOffsets: lockouts.map((lockout) => ({
-          offset: lockout.slot - root,
-          confirmationCount: lockout.confirmationCount,
-        })),
+        lockoutOffsets: lockouts.map((lockout) => {
+          const lockoutOffset = {
+            offset: lockout.slot - currentSlot,
+            confirmationCount: lockout.confirmationCount,
+          };
+          currentSlot += lockout.slot - currentSlot;
+          return lockoutOffset;
+        }),
         root,
         hash: toBuffer(hash.toBuffer()),
         timestampOption: timestamp !== undefined ? 1 : 0,
         timestamp: timestamp !== undefined ? timestamp : 0,
       },
-    });
+    };
+    const data = encodeData(type, rawData);
 
     const keys = [
       {pubkey: voteAccount, isSigner: false, isWritable: true},

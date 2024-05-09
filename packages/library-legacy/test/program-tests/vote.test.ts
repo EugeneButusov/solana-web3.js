@@ -144,16 +144,16 @@ describe('VoteProgram', () => {
       voteAuthority,
       voteStateUpdate: {
         lockouts: [{
-            slot: 1234567,
+            slot: 1234561,
             confirmationCount: 3,
         }, {
-          slot: 1234568,
+          slot: 1234562,
           confirmationCount: 2,
         }, {
-          slot: 1234570,
+          slot: 1234576,
           confirmationCount: 1,
         }],
-        root: 123456,
+        root: 1234560,
         hash: Keypair.generate().publicKey,
         timestamp: Math.floor(new Date().getTime() / 1000),
       },
