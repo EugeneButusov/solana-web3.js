@@ -329,6 +329,13 @@ export type VoteAuthorizeWithSeedArgs = Readonly<{
   voteAuthorizationType: number;
 }>;
 type VoteInstructionInputData = {
+  Authorize: IInstructionInputData & {
+    newAuthorized: Uint8Array;
+    voteAuthorizationType: number;
+  };
+  AuthorizeWithSeed: IInstructionInputData & {
+    voteAuthorizeWithSeedArgs: VoteAuthorizeWithSeedArgs;
+  };
   InitializeAccount: IInstructionInputData & {
     voteInit: Readonly<{
       authorizedVoter: Uint8Array;
@@ -337,26 +344,10 @@ type VoteInstructionInputData = {
       nodePubkey: Uint8Array;
     }>;
   };
-  Authorize: IInstructionInputData & {
-    newAuthorized: Uint8Array;
-    voteAuthorizationType: number;
-  };
-  Vote: IInstructionInputData & {},
   Withdraw: IInstructionInputData & {
     lamports: number;
   };
   UpdateValidatorIdentity: IInstructionInputData;
-  UpdateCommission: IInstructionInputData & {};
-  VoteSwitch: IInstructionInputData & {};
-  AuthorizeChecked: IInstructionInputData & {};
-    UpdateVoteState: IInstructionInputData & {};
-    UpdateVoteStateSwitch: IInstructionInputData & {};
-  AuthorizeWithSeed: IInstructionInputData & {
-    voteAuthorizeWithSeedArgs: VoteAuthorizeWithSeedArgs;
-  };
-  AuthorizeCheckedWithSeed: IInstructionInputData & {
-    voteAuthorizeWithSeedArgs: VoteAuthorizeWithSeedArgs;
-  };
   CompactUpdateVoteState: IInstructionInputData & {
     voteStateUpdate: {
       lockoutOffsets: {
@@ -369,7 +360,6 @@ type VoteInstructionInputData = {
       timestamp?: number;
     };
   };
-  CompactUpdateVoteStateSwitch: IInstructionInputData;
 };
 
 const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
