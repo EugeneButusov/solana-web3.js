@@ -12,6 +12,7 @@ import {SystemProgram} from './system';
 import {SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY} from '../sysvar';
 import {Transaction, TransactionInstruction} from '../transaction';
 import {toBuffer} from '../utils/to-buffer';
+import { Lockout } from '../vote-account';
 
 /**
  * Vote account info
@@ -262,6 +263,27 @@ export class VoteInstruction {
   }
 
   /**
+   * Decode a compact update vote state instruction and retrieve the instruction params.
+   */
+  static decodeCompactUpdateVoteState(
+      instruction: TransactionInstruction,
+  ): any {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const {voteStateUpdate } = decodeData(
+        VOTE_INSTRUCTION_LAYOUTS.CompactUpdateVoteState,
+        instruction.data,
+    );
+
+    return {
+      voteAccount: instruction.keys[0].pubkey,
+      voteAuthority: instruction.keys[1].pubkey,
+      voteStateUpdate,
+    };
+  }
+
+  /**
    * @internal
    */
   static checkProgramId(programId: PublicKey) {
@@ -341,7 +363,14 @@ type VoteInstructionInputData = {
   AuthorizeCheckedWithSeed: IInstructionInputData & {
     voteAuthorizeWithSeedArgs: VoteAuthorizeWithSeedArgs;
   };
-  CompactUpdateVoteState: IInstructionInputData;
+  CompactUpdateVoteState: IInstructionInputData & {
+    voteStateUpdate: {
+      lockouts: Lockout[];
+      root?: number;
+      hash: Uint8Array,
+      timestamp: number;
+    };
+  };
   CompactUpdateVoteStateSwitch: IInstructionInputData;
 };
 
@@ -432,6 +461,17 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
     index: 12,
     layout: BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']>([
       BufferLayout.u32('instruction'),
+      BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']>([
+        BufferLayout.nu64('root'),
+        BufferLayout.u8(), // lockoutOffsets.length
+        BufferLayout.seq(BufferLayout.struct<Lockout>([
+          BufferLayout.u8('offset'),
+          BufferLayout.u8('confirmationCount'),
+        ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
+        Layout.publicKey('hash'),
+        BufferLayout.u8('timestampOption'),
+        BufferLayout.nu64('timestamp'),
+      ], 'voteStateUpdate'),
     ]),
   },
   CompactUpdateVoteStateSwitch: {
