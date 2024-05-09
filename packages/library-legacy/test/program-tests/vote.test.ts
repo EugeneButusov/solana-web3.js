@@ -136,6 +136,34 @@ describe('VoteProgram', () => {
     expect(params).to.eql(VoteInstruction.decodeWithdraw(withdrawInstruction));
   });
 
+  it('withdraw', () => {
+    const voteAccount = Keypair.generate().publicKey;
+    const voteAuthority = Keypair.generate().publicKey;
+    const params = {
+      voteAccount,
+      voteAuthority,
+      voteStateUpdate: {
+        lockouts: [{
+            slot: 1234567,
+            confirmationCount: 3,
+        }, {
+          slot: 1234568,
+          confirmationCount: 2,
+        }, {
+          slot: 1234570,
+          confirmationCount: 1,
+        }],
+        root: 123456,
+        hash: Keypair.generate().publicKey,
+        timestamp: Math.floor(new Date().getTime() / 1000),
+      },
+    };
+    const transaction = VoteProgram.compactUpdateVoteState(params);
+    expect(transaction.instructions).to.have.length(1);
+    const [withdrawInstruction] = transaction.instructions;
+    expect(params).to.eql(VoteInstruction.decodeCompactUpdateVoteState(withdrawInstruction));
+  });
+
   if (process.env.TEST_LIVE) {
     it('change authority from derived key', async () => {
       const connection = new Connection(url, 'confirmed');

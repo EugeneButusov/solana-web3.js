@@ -660,4 +660,37 @@ export class VoteProgram {
       data,
     });
   }
+
+  /**
+   * Generate a transaction for compacted UpdateVoteState.
+   */
+  static compactUpdateVoteState(
+      params: CompactUpdateVoteStateParams,
+  ): Transaction {
+    const { voteAccount, voteAuthority, voteStateUpdate: { lockouts, root, hash, timestamp } } = params;
+    const type = VOTE_INSTRUCTION_LAYOUTS.CompactUpdateVoteState;
+    const data = encodeData(type, {
+      voteStateUpdate: {
+        lockoutOffsets: lockouts.map((lockout) => ({
+          offset: lockout.slot - root,
+          confirmationCount: lockout.confirmationCount,
+        })),
+        root,
+        hash: toBuffer(hash.toBuffer()),
+        timestampOption: timestamp !== undefined ? 1 : 0,
+        timestamp: timestamp !== undefined ? timestamp : 0,
+      },
+    });
+
+    const keys = [
+      {pubkey: voteAccount, isSigner: false, isWritable: true},
+      {pubkey: voteAuthority, isSigner: true, isWritable: true},
+    ];
+
+    return new Transaction().add({
+      keys,
+      programId: this.programId,
+      data,
+    });
+  }
 }
