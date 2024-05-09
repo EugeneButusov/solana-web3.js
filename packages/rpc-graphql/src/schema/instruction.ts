@@ -1014,6 +1014,106 @@ export const instructionTypeDefs = /* GraphQL */ `
         withheldAmount: String
     }
 
+    """
+    Spl Token Group: InitializeGroup instruction
+    """
+    type SplTokenGroupInitializeGroup implements TransactionInstruction {
+        programId: Address
+        group: Account
+        maxSize: BigInt
+        mint: Account
+        mintAuthority: Account
+        updateAuthority: Account
+    }
+
+    """
+    Spl Token Group: UpdateGroupMaxSize instruction
+    """
+    type SplTokenGroupUpdateGroupMaxSize implements TransactionInstruction {
+        programId: Address
+        group: Account
+        maxSize: BigInt
+        updateAuthority: Account
+    }
+
+    """
+    Spl Token Group: UpdateGroupAuthority instruction
+    """
+    type SplTokenGroupUpdateGroupAuthority implements TransactionInstruction {
+        programId: Address
+        group: Account
+        newAuthority: Account
+        updateAuthority: Account
+    }
+
+    """
+    Spl Token Group: InitializeMember instruction
+    """
+    type SplTokenGroupInitializeMember implements TransactionInstruction {
+        programId: Address
+        group: Account
+        groupUpdateAuthority: Account
+        member: Account
+        memberMint: Account
+        memberMintAuthority: Account
+    }
+
+    """
+    Spl Token Metadata: InitializeMetadata instruction
+    """
+    type SplTokenMetadataInitialize implements TransactionInstruction {
+        programId: Address
+        metadata: Account
+        mint: Account
+        mintAuthority: Account
+        name: String
+        symbol: String
+        updateAuthority: Account
+        uri: String
+    }
+
+    """
+    Spl Token Metadata: UpdateField instruction
+    """
+    type SplTokenMetadataUpdateField implements TransactionInstruction {
+        programId: Address
+        field: String
+        metadata: Account
+        updateAuthority: Account
+        value: String
+    }
+
+    """
+    Spl Token Metadata: RemoveKey instruction
+    """
+    type SplTokenMetadataRemoveKey implements TransactionInstruction {
+        programId: Address
+        idempotent: Boolean
+        key: String
+        metadata: Account
+        updateAuthority: Account
+    }
+
+    """
+    Spl Token Metadata: UpdateAuthority instruction
+    """
+    type SplTokenMetadataUpdateAuthority implements TransactionInstruction {
+        programId: Address
+        metadata: Account
+        newAuthority: Account
+        updateAuthority: Account
+    }
+
+    """
+    Spl Token Metadata: Emit instruction
+    """
+    type SplTokenMetadataEmit implements TransactionInstruction {
+        programId: Address
+        metadata: Account
+        end: BigInt
+        start: BigInt
+    }
+
     type Lockup {
         custodian: Account
         epoch: Epoch

@@ -290,6 +290,28 @@ export const instructionResolvers = {
     SplTokenGetAccountDataSizeInstruction: {
         mint: resolveAccount('mint'),
     },
+    SplTokenGroupInitializeGroup: {
+        group: resolveAccount('group'),
+        mint: resolveAccount('mint'),
+        mintAuthority: resolveAccount('mintAuthority'),
+        updateAuthority: resolveAccount('updateAuthority'),
+    },
+    SplTokenGroupInitializeMember: {
+        group: resolveAccount('group'),
+        groupUpdateAuthority: resolveAccount('groupUpdateAuthority'),
+        member: resolveAccount('member'),
+        memberMint: resolveAccount('memberMint'),
+        memberMintAuthority: resolveAccount('memberMintAuthority'),
+    },
+    SplTokenGroupUpdateGroupAuthority: {
+        group: resolveAccount('group'),
+        newAuthority: resolveAccount('newAuthority'),
+        updateAuthority: resolveAccount('updateAuthority'),
+    },
+    SplTokenGroupUpdateGroupMaxSize: {
+        group: resolveAccount('group'),
+        updateAuthority: resolveAccount('updateAuthority'),
+    },
     SplTokenHarvestWithheldConfidentialTransferTokensToMint: {
         mint: resolveAccount('mint'),
     },
@@ -378,6 +400,28 @@ export const instructionResolvers = {
         authority: resolveAccount('authority'),
         hookProgramId: resolveAccount('programId'),
         mint: resolveAccount('mint'),
+    },
+    SplTokenMetadataEmit: {
+        metadata: resolveAccount('metadata'),
+    },
+    SplTokenMetadataInitialize: {
+        metadata: resolveAccount('metadata'),
+        mint: resolveAccount('mint'),
+        mintAuthority: resolveAccount('mintAuthority'),
+        updateAuthority: resolveAccount('updateAuthority'),
+    },
+    SplTokenMetadataRemoveKey: {
+        metadata: resolveAccount('metadata'),
+        updateAuthority: resolveAccount('updateAuthority'),
+    },
+    SplTokenMetadataUpdateAuthority: {
+        metadata: resolveAccount('metadata'),
+        newAuthority: resolveAccount('newAuthority'),
+        updateAuthority: resolveAccount('updateAuthority'),
+    },
+    SplTokenMetadataUpdateField: {
+        metadata: resolveAccount('metadata'),
+        updateAuthority: resolveAccount('updateAuthority'),
     },
     SplTokenMintToCheckedInstruction: {
         account: resolveAccount('account'),
@@ -881,6 +925,33 @@ export const instructionResolvers = {
                     }
                     if (jsonParsedConfigs.instructionType === 'initializeConfidentialTransferFeeConfig') {
                         return 'SplTokenInitializeConfidentialTransferFeeConfig';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'initializeTokenGroup') {
+                        return 'SplTokenGroupInitializeGroup';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'updateTokenGroupMaxSize') {
+                        return 'SplTokenGroupUpdateGroupMaxSize';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'updateTokenGroupAuthority') {
+                        return 'SplTokenGroupUpdateGroupAuthority';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'initializeTokenGroupMember') {
+                        return 'SplTokenGroupInitializeMember';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'initializeTokenMetadata') {
+                        return 'SplTokenMetadataInitialize';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'updateTokenMetadataField') {
+                        return 'SplTokenMetadataUpdateField';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'removeTokenMetadataKey') {
+                        return 'SplTokenMetadataRemoveKey';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'updateTokenMetadataAuthority') {
+                        return 'SplTokenMetadataUpdateAuthority';
+                    }
+                    if (jsonParsedConfigs.instructionType === 'emitTokenMetadata') {
+                        return 'SplTokenMetadataEmit';
                     }
                 }
                 if (jsonParsedConfigs.programName === 'stake') {
