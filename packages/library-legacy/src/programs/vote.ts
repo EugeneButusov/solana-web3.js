@@ -97,6 +97,17 @@ export type UpdateValidatorIdentityParams = {
   nodePubkey: PublicKey;
 };
 
+export type CompactUpdateVoteStateParams = {
+  voteAccount: PublicKey,
+  voteAuthority: PublicKey,
+  voteStateUpdate: {
+    lockouts: Lockout[],
+    root: number,
+    hash: Uint8Array,
+    timestamp?: number,
+  },
+};
+
 /**
  * Vote Instruction class
  */
@@ -182,29 +193,6 @@ export class VoteInstruction {
     };
   }
 
-  // /**
-  //  * Decode a vote instruction and retrieve the instruction params.
-  //  */
-  // static decodeVote(
-  //     instruction: TransactionInstruction,
-  // ): AuthorizeVoteParams {
-  //   this.checkProgramId(instruction.programId);
-  //   this.checkKeyLength(instruction.keys, 4);
-  //
-  //   const {newAuthorized, voteAuthorizationType} = decodeData(
-  //       VOTE_INSTRUCTION_LAYOUTS.Vote,
-  //       instruction.data,
-  //   );
-  //
-  //   return {
-  //     votePubkey: instruction.keys[0].pubkey,
-  //     authorizedPubkey: instruction.keys[2].pubkey,
-  //     voteAuthorizationType: {
-  //       index: voteAuthorizationType,
-  //     },
-  //   };
-  // }
-
   /**
    * Decode an authorize instruction and retrieve the instruction params.
    */
@@ -267,7 +255,7 @@ export class VoteInstruction {
    */
   static decodeCompactUpdateVoteState(
       instruction: TransactionInstruction,
-  ): any {
+  ): CompactUpdateVoteStateParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 2);
 
@@ -308,24 +296,16 @@ export class VoteInstruction {
  * An enumeration of valid VoteInstructionType's
  */
 export type VoteInstructionType =
-  // FIXME
-  // It would be preferable for this type to be `keyof VoteInstructionInputData`
-  // but Typedoc does not transpile `keyof` expressions.
-  // See https://github.com/TypeStrong/typedoc/issues/1894
-  | 'InitializeAccount'
-  | 'Authorize'
-  | 'Vote'
-  | 'Withdraw'
-  | 'UpdateValidatorIdentity'
-  | 'UpdateCommission'
-  | 'VoteSwitch'
-  | 'AuthorizeChecked'
-  | 'UpdateVoteState'
-  | 'UpdateVoteStateSwitch'
-  | 'AuthorizeWithSeed'
-  | 'AuthorizeCheckedWithSeed'
-  | 'CompactUpdateVoteState'
-  | 'CompactUpdateVoteStateSwitch';
+// FIXME
+// It would be preferable for this type to be `keyof VoteInstructionInputData`
+// but Typedoc does not transpile `keyof` expressions.
+// See https://github.com/TypeStrong/typedoc/issues/1894
+    | 'Authorize'
+    | 'AuthorizeWithSeed'
+    | 'InitializeAccount'
+    | 'Withdraw'
+    | 'UpdateValidatorIdentity'
+    | 'CompactUpdateVoteState';
 
 /** @internal */
 export type VoteAuthorizeWithSeedArgs = Readonly<{
@@ -366,9 +346,9 @@ type VoteInstructionInputData = {
   CompactUpdateVoteState: IInstructionInputData & {
     voteStateUpdate: {
       lockouts: Lockout[];
-      root?: number;
+      root: number;
       hash: Uint8Array,
-      timestamp: number;
+      timestamp?: number;
     };
   };
   CompactUpdateVoteStateSwitch: IInstructionInputData;
@@ -394,12 +374,6 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
       BufferLayout.u32('voteAuthorizationType'),
     ]),
   },
-  Vote: {
-    index: 2,
-    layout: BufferLayout.struct<VoteInstructionInputData['Vote']>([
-      BufferLayout.u32('instruction'),
-    ]),
-  },
   Withdraw: {
     index: 3,
     layout: BufferLayout.struct<VoteInstructionInputData['Withdraw']>([
@@ -413,46 +387,9 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
       VoteInstructionInputData['UpdateValidatorIdentity']
     >([BufferLayout.u32('instruction')]),
   },
-  UpdateCommission: {
-    index: 5,
-    layout: BufferLayout.struct<VoteInstructionInputData['UpdateCommission']>([
-      BufferLayout.u32('instruction'),
-    ]),
-  },
-  VoteSwitch: {
-    index: 6,
-    layout: BufferLayout.struct<VoteInstructionInputData['VoteSwitch']>([
-      BufferLayout.u32('instruction'),
-    ]),
-  },
-  AuthorizeChecked: {
-    index: 7,
-    layout: BufferLayout.struct<VoteInstructionInputData['AuthorizeChecked']>([
-      BufferLayout.u32('instruction'),
-    ]),
-  },
-  UpdateVoteState: {
-    index: 8,
-    layout: BufferLayout.struct<VoteInstructionInputData['UpdateVoteState']>([
-      BufferLayout.u32('instruction'),
-    ]),
-  },
-  UpdateVoteStateSwitch: {
-    index: 9,
-    layout: BufferLayout.struct<VoteInstructionInputData['UpdateVoteStateSwitch']>([
-      BufferLayout.u32('instruction'),
-    ]),
-  },
   AuthorizeWithSeed: {
     index: 10,
     layout: BufferLayout.struct<VoteInstructionInputData['AuthorizeWithSeed']>([
-      BufferLayout.u32('instruction'),
-      Layout.voteAuthorizeWithSeedArgs(),
-    ]),
-  },
-  AuthorizeCheckedWithSeed: {
-    index: 11,
-    layout: BufferLayout.struct<VoteInstructionInputData['AuthorizeCheckedWithSeed']>([
       BufferLayout.u32('instruction'),
       Layout.voteAuthorizeWithSeedArgs(),
     ]),
@@ -472,12 +409,6 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
         BufferLayout.u8('timestampOption'),
         BufferLayout.nu64('timestamp'),
       ], 'voteStateUpdate'),
-    ]),
-  },
-  CompactUpdateVoteStateSwitch: {
-    index: 13,
-    layout: BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteStateSwitch']>([
-      BufferLayout.u32('instruction'),
     ]),
   },
 });
