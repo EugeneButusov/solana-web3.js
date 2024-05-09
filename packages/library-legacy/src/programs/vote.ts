@@ -314,12 +314,12 @@ export type VoteInstructionType =
 // It would be preferable for this type to be `keyof VoteInstructionInputData`
 // but Typedoc does not transpile `keyof` expressions.
 // See https://github.com/TypeStrong/typedoc/issues/1894
-    | 'Authorize'
-    | 'AuthorizeWithSeed'
-    | 'InitializeAccount'
-    | 'Withdraw'
-    | 'UpdateValidatorIdentity'
-    | 'CompactUpdateVoteState';
+  | 'Authorize'
+  | 'AuthorizeWithSeed'
+  | 'InitializeAccount'
+  | 'Withdraw'
+  | 'UpdateValidatorIdentity'
+  | 'CompactUpdateVoteState';
 
 /** @internal */
 export type VoteAuthorizeWithSeedArgs = Readonly<{
