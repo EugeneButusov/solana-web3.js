@@ -12,6 +12,7 @@ import {SystemProgram} from './system';
 import {SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY} from '../sysvar';
 import {Transaction, TransactionInstruction} from '../transaction';
 import {toBuffer} from '../utils/to-buffer';
+import { Lockout } from '../vote-account';
 
 /**
  * Vote account info
@@ -96,18 +97,13 @@ export type UpdateValidatorIdentityParams = {
   nodePubkey: PublicKey;
 };
 
-export type LockoutOffset = {
-  offset: number;
-  confirmationCount: number;
-};
-
 export type CompactUpdateVoteStateParams = {
   voteAccount: PublicKey,
   voteAuthority: PublicKey,
   voteStateUpdate: {
-    lockoutOffsets: LockoutOffset[],
+    lockouts: Lockout[],
     root: number,
-    hash: Uint8Array,
+    hash: PublicKey,
     timestamp?: number,
   },
 };
@@ -263,15 +259,29 @@ export class VoteInstruction {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 2);
 
-    const {voteStateUpdate } = decodeData(
+    const { voteStateUpdate: { lockoutOffsets, root, hash, timestampOption, timestamp }  } = decodeData(
         VOTE_INSTRUCTION_LAYOUTS.CompactUpdateVoteState,
         instruction.data,
     );
+    let lockoutSlot = root;
 
     return {
       voteAccount: instruction.keys[0].pubkey,
       voteAuthority: instruction.keys[1].pubkey,
-      voteStateUpdate,
+      voteStateUpdate: {
+        lockouts: lockoutOffsets.map(
+            (lockoutOffset: {
+              offset: number;
+              confirmationCount: number;
+            }) => ({
+              slot: (lockoutSlot = lockoutSlot + lockoutOffset.offset),
+              confirmationCount: lockoutOffset.confirmationCount,
+            })
+        ),
+        root,
+        hash: new PublicKey(hash),
+        timestamp: timestampOption ? timestamp : undefined,
+      },
     };
   }
 
@@ -349,9 +359,13 @@ type VoteInstructionInputData = {
   };
   CompactUpdateVoteState: IInstructionInputData & {
     voteStateUpdate: {
-      lockoutOffsets: LockoutOffset[];
+      lockoutOffsets: {
+        offset: number;
+        confirmationCount: number;
+      }[];
       root: number;
       hash: Uint8Array,
+      timestampOption: number;
       timestamp?: number;
     };
   };
@@ -405,7 +419,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
       BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']>([
         BufferLayout.nu64('root'),
         BufferLayout.u8(), // lockoutOffsets.length
-        BufferLayout.seq(BufferLayout.struct<LockoutOffset>([
+        BufferLayout.seq(BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']['lockoutOffsets'][number]>([
           BufferLayout.u8('offset'),
           BufferLayout.u8('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
