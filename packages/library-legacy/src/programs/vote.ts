@@ -12,7 +12,6 @@ import {SystemProgram} from './system';
 import {SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY} from '../sysvar';
 import {Transaction, TransactionInstruction} from '../transaction';
 import {toBuffer} from '../utils/to-buffer';
-import { Lockout } from '../vote-account';
 
 /**
  * Vote account info
@@ -97,11 +96,16 @@ export type UpdateValidatorIdentityParams = {
   nodePubkey: PublicKey;
 };
 
+export type LockoutOffset = {
+  offset: number;
+  confirmationCount: number;
+};
+
 export type CompactUpdateVoteStateParams = {
   voteAccount: PublicKey,
   voteAuthority: PublicKey,
   voteStateUpdate: {
-    lockouts: Lockout[],
+    lockoutOffsets: LockoutOffset[],
     root: number,
     hash: Uint8Array,
     timestamp?: number,
@@ -345,7 +349,7 @@ type VoteInstructionInputData = {
   };
   CompactUpdateVoteState: IInstructionInputData & {
     voteStateUpdate: {
-      lockouts: Lockout[];
+      lockoutOffsets: LockoutOffset[];
       root: number;
       hash: Uint8Array,
       timestamp?: number;
@@ -401,7 +405,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
       BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']>([
         BufferLayout.nu64('root'),
         BufferLayout.u8(), // lockoutOffsets.length
-        BufferLayout.seq(BufferLayout.struct<Lockout>([
+        BufferLayout.seq(BufferLayout.struct<LockoutOffset>([
           BufferLayout.u8('offset'),
           BufferLayout.u8('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
