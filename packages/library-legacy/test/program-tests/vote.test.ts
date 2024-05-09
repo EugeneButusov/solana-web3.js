@@ -136,7 +136,7 @@ describe('VoteProgram', () => {
     expect(params).to.eql(VoteInstruction.decodeWithdraw(withdrawInstruction));
   });
 
-  it('withdraw', () => {
+  it('compactUpdateVoteState', () => {
     const voteAccount = Keypair.generate().publicKey;
     const voteAuthority = Keypair.generate().publicKey;
     const params = {
