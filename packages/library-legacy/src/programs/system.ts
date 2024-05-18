@@ -122,6 +122,7 @@ export type AdvanceNonceParams = {
   noncePubkey: PublicKey;
   /** Public key of the nonce authority */
   authorizedPubkey: PublicKey;
+  recentBlockhashesSysvar: PublicKey;
 };
 
 /**
@@ -480,6 +481,7 @@ export class SystemInstruction {
     return {
       noncePubkey: instruction.keys[0].pubkey,
       authorizedPubkey: instruction.keys[2].pubkey,
+      recentBlockhashesSysvar: instruction.keys[1].pubkey,
     };
   }
 
