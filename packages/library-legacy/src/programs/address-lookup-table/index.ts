@@ -11,12 +11,18 @@ import {decodeData, encodeData, IInstructionInputData} from '../../instruction';
 export * from './state';
 
 export type CreateLookupTableParams = {
+  /** Uninitialized address lookup table account. */
+  account: PublicKey;
   /** Account used to derive and control the new address lookup table. */
   authority: PublicKey;
   /** Account that will fund the new address lookup table. */
   payer: PublicKey;
   /** A recent slot must be used in the derivation path for each initialized table. */
   recentSlot: bigint | number;
+  /** Address tables are always initialized at program-derived addresses using the funding address, recent blockhash, and the user-passed `bump_seed`. */
+  bumpSeed: bigint | number;
+  /** System program for CPI. */
+  systemProgram: PublicKey;
 };
 
 export type FreezeLookupTableParams = {
@@ -166,15 +172,18 @@ export class AddressLookupTableInstruction {
     this.checkProgramId(instruction.programId);
     this.checkKeysLength(instruction.keys, 4);
 
-    const {recentSlot} = decodeData(
+    const { recentSlot, bumpSeed } = decodeData(
       LOOKUP_TABLE_INSTRUCTION_LAYOUTS.CreateLookupTable,
       instruction.data,
     );
 
     return {
+      account: instruction.keys[0].pubkey,
       authority: instruction.keys[1].pubkey,
       payer: instruction.keys[2].pubkey,
+      systemProgram: instruction.keys[3].pubkey,
       recentSlot: Number(recentSlot),
+      bumpSeed: Number(bumpSeed),
     };
   }
 
