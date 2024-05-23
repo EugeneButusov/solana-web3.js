@@ -194,6 +194,12 @@ export type DeactivateStakeParams = {
   authorizedPubkey: PublicKey;
 };
 
+export type SetLockupStakeParams = {
+  stakePubkey: PublicKey;
+  custodianPubkey: PublicKey;
+  lockup: Lockup;
+};
+
 export type InitializeCheckedStakeParams = {
   stakePubkey: PublicKey;
   stakerPubkey: PublicKey;
@@ -402,13 +408,16 @@ export class StakeInstruction {
    */
   static decodeSetLockup(instruction: TransactionInstruction): SetLockupStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 3);
-    decodeData(STAKE_INSTRUCTION_LAYOUTS.Merge, instruction.data);
-
+    this.checkKeyLength(instruction.keys, 2);
+    const { lockup: rawLockup } = decodeData(STAKE_INSTRUCTION_LAYOUTS.SetLockup, instruction.data);
     return {
       stakePubkey: instruction.keys[0].pubkey,
-      sourceStakePubKey: instruction.keys[1].pubkey,
-      authorizedPubkey: instruction.keys[4].pubkey,
+      custodianPubkey: instruction.keys[1].pubkey,
+      lockup: rawLockup && {
+        unixTimestamp: rawLockup.unixTimestamp,
+        epoch: rawLockup.epoch,
+        custodian: new PublicKey(rawLockup.custodian),
+      },
     };
   }
 
@@ -548,40 +557,34 @@ export class StakeInstruction {
    */
   static decodeSetLockupChecked(
       instruction: TransactionInstruction,
-  ): SetLockupCheckedStakeParams {
+  ): SetLockupStakeParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 2);
 
-    const {
-      newAuthorized,
-      stakeAuthorizationType,
-      authoritySeed,
-      authorityOwner,
-    } = decodeData(
-        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+    const { lockup: rawLockup } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.SetLockupChecked,
         instruction.data,
     );
 
-    const o: AuthorizeWithSeedStakeParams = {
+    return {
       stakePubkey: instruction.keys[0].pubkey,
-      authorityBase: instruction.keys[1].pubkey,
-      authoritySeed: authoritySeed,
-      authorityOwner: new PublicKey(authorityOwner),
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
-      stakeAuthorizationType: {
-        index: stakeAuthorizationType,
+      custodianPubkey: instruction.keys[1].pubkey,
+      lockup: rawLockup && {
+        unixTimestamp: rawLockup.unixTimestamp,
+        epoch: rawLockup.epoch,
+        custodian: instruction.keys[2].pubkey,
       },
     };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
-    }
-    return o;
   }
 
   static decodeGetMinimumDelegation(
       instruction: TransactionInstruction,
   ): {} {
     this.checkProgramId(instruction.programId);
+    decodeData(
+      STAKE_INSTRUCTION_LAYOUTS.GetMinimumDelegation,
+      instruction.data,
+    );
     return {};
   }
 
@@ -590,6 +593,11 @@ export class StakeInstruction {
   ): DeactivateDelinquentStakeParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 3);
+
+    decodeData(
+      STAKE_INSTRUCTION_LAYOUTS.DeactivateDelinquent,
+      instruction.data,
+    );
 
     return {
       stakePubkey: instruction.keys[0].pubkey,
@@ -603,6 +611,11 @@ export class StakeInstruction {
   ): RedelegateStakeParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 5);
+
+    decodeData(
+      STAKE_INSTRUCTION_LAYOUTS.Redelegate,
+      instruction.data,
+    );
 
     return {
       stakePubkey: instruction.keys[0].pubkey,
@@ -680,7 +693,9 @@ type StakeInstructionInputData = {
       lamports: number;
     }>;
   Deactivate: IInstructionInputData;
-  SetLockup: IInstructionInputData;
+  SetLockup: IInstructionInputData & Readonly<{
+    lockup: LockupRaw;
+  }>;
   Merge: IInstructionInputData;
   AuthorizeWithSeed: IInstructionInputData &
     Readonly<{
@@ -693,7 +708,9 @@ type StakeInstructionInputData = {
   InitializeChecked: IInstructionInputData;
   AuthorizeChecked: IInstructionInputData;
   AuthorizeCheckedWithSeed: IInstructionInputData;
-  SetLockupChecked: IInstructionInputData;
+  SetLockupChecked: IInstructionInputData & Readonly<{
+    lockup: LockupRaw;
+  }>;
   GetMinimumDelegation: IInstructionInputData;
   DeactivateDelinquent: IInstructionInputData;
   Redelegate: IInstructionInputData;
@@ -754,6 +771,7 @@ export const STAKE_INSTRUCTION_LAYOUTS = Object.freeze<{
     index: 6,
     layout: BufferLayout.struct<StakeInstructionInputData['SetLockup']>([
       BufferLayout.u32('instruction'),
+      Layout.lockup(),
     ]),
   },
   Merge: {
