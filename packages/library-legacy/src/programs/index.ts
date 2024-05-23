@@ -5,3 +5,4 @@ export * from './secp256k1';
 export * from './stake';
 export * from './system';
 export * from './vote';
+export * from './bpf-loader';

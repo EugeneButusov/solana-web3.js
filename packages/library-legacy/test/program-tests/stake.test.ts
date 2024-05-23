@@ -10,7 +10,7 @@ import {
   sendAndConfirmTransaction,
   LAMPORTS_PER_SOL,
   StakeAuthorizationLayout,
-  StakeInstruction,
+  BpfLoaderInstruction,
   StakeProgram,
   SystemInstruction,
   Transaction,
@@ -58,7 +58,7 @@ describe('StakeProgram', () => {
     );
     const initParams = {stakePubkey: newAccountPubkey, authorized, lockup};
     expect(initParams).to.eql(
-      StakeInstruction.decodeInitialize(stakeInstruction),
+      BpfLoaderInstruction.decodeInitialize(stakeInstruction),
     );
   });
 
@@ -91,7 +91,7 @@ describe('StakeProgram', () => {
 
     const initParams = {stakePubkey: newAccountPubkey, authorized, lockup};
     expect(initParams).to.eql(
-      StakeInstruction.decodeInitialize(stakeInstruction),
+      BpfLoaderInstruction.decodeInitialize(stakeInstruction),
     );
   });
 
@@ -107,7 +107,7 @@ describe('StakeProgram', () => {
     const transaction = StakeProgram.delegate(params);
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
-    expect(params).to.eql(StakeInstruction.decodeDelegate(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeDelegate(stakeInstruction));
   });
 
   it('authorize', () => {
@@ -124,7 +124,7 @@ describe('StakeProgram', () => {
     const transaction = StakeProgram.authorize(params);
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
-    expect(params).to.eql(StakeInstruction.decodeAuthorize(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeAuthorize(stakeInstruction));
   });
 
   it('authorize with custodian', () => {
@@ -143,7 +143,7 @@ describe('StakeProgram', () => {
     const transaction = StakeProgram.authorize(params);
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
-    expect(params).to.eql(StakeInstruction.decodeAuthorize(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeAuthorize(stakeInstruction));
   });
 
   it('authorizeWithSeed', () => {
@@ -165,7 +165,7 @@ describe('StakeProgram', () => {
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
     expect(params).to.eql(
-      StakeInstruction.decodeAuthorizeWithSeed(stakeInstruction),
+      BpfLoaderInstruction.decodeAuthorizeWithSeed(stakeInstruction),
     );
   });
 
@@ -190,7 +190,7 @@ describe('StakeProgram', () => {
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
     expect(params).to.eql(
-      StakeInstruction.decodeAuthorizeWithSeed(stakeInstruction),
+      BpfLoaderInstruction.decodeAuthorizeWithSeed(stakeInstruction),
     );
   });
 
@@ -217,7 +217,7 @@ describe('StakeProgram', () => {
     expect(systemParams).to.eql(
       SystemInstruction.decodeCreateAccount(systemInstruction),
     );
-    expect(params).to.eql(StakeInstruction.decodeSplit(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeSplit(stakeInstruction));
   });
 
   [0, undefined, 456].forEach(rentExemptReserve => {
@@ -277,7 +277,7 @@ describe('StakeProgram', () => {
         lamports,
       };
       expect(splitParams).to.eql(
-        StakeInstruction.decodeSplit(splitInstruction),
+        BpfLoaderInstruction.decodeSplit(splitInstruction),
       );
     });
   });
@@ -294,7 +294,7 @@ describe('StakeProgram', () => {
     const transaction = StakeProgram.merge(params);
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
-    expect(params).to.eql(StakeInstruction.decodeMerge(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeMerge(stakeInstruction));
   });
 
   it('withdraw', () => {
@@ -310,7 +310,7 @@ describe('StakeProgram', () => {
     const transaction = StakeProgram.withdraw(params);
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
-    expect(params).to.eql(StakeInstruction.decodeWithdraw(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeWithdraw(stakeInstruction));
   });
 
   it('withdraw with custodian', () => {
@@ -328,7 +328,7 @@ describe('StakeProgram', () => {
     const transaction = StakeProgram.withdraw(params);
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
-    expect(params).to.eql(StakeInstruction.decodeWithdraw(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeWithdraw(stakeInstruction));
   });
 
   it('deactivate', () => {
@@ -338,7 +338,7 @@ describe('StakeProgram', () => {
     const transaction = StakeProgram.deactivate(params);
     expect(transaction.instructions).to.have.length(1);
     const [stakeInstruction] = transaction.instructions;
-    expect(params).to.eql(StakeInstruction.decodeDeactivate(stakeInstruction));
+    expect(params).to.eql(BpfLoaderInstruction.decodeDeactivate(stakeInstruction));
   });
 
   it('StakeInstructions', async () => {
@@ -372,13 +372,13 @@ describe('StakeProgram', () => {
     );
     expect(systemInstructionType).to.eq('CreateWithSeed');
 
-    const stakeInstructionType = StakeInstruction.decodeInstructionType(
+    const stakeInstructionType = BpfLoaderInstruction.decodeInstructionType(
       createWithSeedTransaction.instructions[1],
     );
     expect(stakeInstructionType).to.eq('Initialize');
 
     expect(() => {
-      StakeInstruction.decodeInstructionType(
+      BpfLoaderInstruction.decodeInstructionType(
         createWithSeedTransaction.instructions[0],
       );
     }).to.throw();
@@ -395,7 +395,7 @@ describe('StakeProgram', () => {
       blockhash: recentBlockhash,
       lastValidBlockHeight: 9999,
     }).add(delegate);
-    const anotherStakeInstructionType = StakeInstruction.decodeInstructionType(
+    const anotherStakeInstructionType = BpfLoaderInstruction.decodeInstructionType(
       delegateTransaction.instructions[0],
     );
     expect(anotherStakeInstructionType).to.eq('Delegate');
