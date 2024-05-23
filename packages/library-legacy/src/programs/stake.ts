@@ -267,6 +267,33 @@ export class StakeInstruction {
   }
 
   /**
+   * Decode an authorize stake instruction and retrieve the instruction params.
+   */
+  static decodeAuthorize(
+      instruction: TransactionInstruction,
+  ): AuthorizeStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 3);
+    const {newAuthorized, stakeAuthorizationType} = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.Authorize,
+        instruction.data,
+    );
+
+    const o: AuthorizeStakeParams = {
+      stakePubkey: instruction.keys[0].pubkey,
+      authorizedPubkey: instruction.keys[2].pubkey,
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
+    };
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
+    }
+    return o;
+  }
+
+  /**
    * Decode a delegate stake instruction and retrieve the instruction params.
    */
   static decodeDelegate(
@@ -284,30 +311,93 @@ export class StakeInstruction {
   }
 
   /**
-   * Decode an authorize stake instruction and retrieve the instruction params.
+   * Decode a split stake instruction and retrieve the instruction params.
    */
-  static decodeAuthorize(
-    instruction: TransactionInstruction,
-  ): AuthorizeStakeParams {
+  static decodeSplit(instruction: TransactionInstruction): SplitStakeParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 3);
-    const {newAuthorized, stakeAuthorizationType} = decodeData(
-      STAKE_INSTRUCTION_LAYOUTS.Authorize,
-      instruction.data,
+    const {lamports} = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.Split,
+        instruction.data,
     );
 
-    const o: AuthorizeStakeParams = {
+    return {
       stakePubkey: instruction.keys[0].pubkey,
+      splitStakePubkey: instruction.keys[1].pubkey,
       authorizedPubkey: instruction.keys[2].pubkey,
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
-      stakeAuthorizationType: {
-        index: stakeAuthorizationType,
-      },
+      lamports,
     };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
+  }
+
+  /**
+   * Decode a withdraw stake instruction and retrieve the instruction params.
+   */
+  static decodeWithdraw(
+      instruction: TransactionInstruction,
+  ): WithdrawStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 5);
+    const {lamports} = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.Withdraw,
+        instruction.data,
+    );
+
+    const o: WithdrawStakeParams = {
+      stakePubkey: instruction.keys[0].pubkey,
+      toPubkey: instruction.keys[1].pubkey,
+      authorizedPubkey: instruction.keys[4].pubkey,
+      lamports,
+    };
+    if (instruction.keys.length > 5) {
+      o.custodianPubkey = instruction.keys[5].pubkey;
     }
     return o;
+  }
+
+  /**
+   * Decode a deactivate stake instruction and retrieve the instruction params.
+   */
+  static decodeDeactivate(
+      instruction: TransactionInstruction,
+  ): DeactivateStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 3);
+    decodeData(STAKE_INSTRUCTION_LAYOUTS.Deactivate, instruction.data);
+
+    return {
+      stakePubkey: instruction.keys[0].pubkey,
+      authorizedPubkey: instruction.keys[2].pubkey,
+    };
+  }
+
+  /**
+   * Decode a set lookup instruction and retrieve the instruction params.
+   */
+  static decodeSetLockup(instruction: TransactionInstruction): MergeStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 3);
+    decodeData(STAKE_INSTRUCTION_LAYOUTS.Merge, instruction.data);
+
+    return {
+      stakePubkey: instruction.keys[0].pubkey,
+      sourceStakePubKey: instruction.keys[1].pubkey,
+      authorizedPubkey: instruction.keys[4].pubkey,
+    };
+  }
+
+  /**
+   * Decode a merge stake instruction and retrieve the instruction params.
+   */
+  static decodeMerge(instruction: TransactionInstruction): MergeStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 3);
+    decodeData(STAKE_INSTRUCTION_LAYOUTS.Merge, instruction.data);
+
+    return {
+      stakePubkey: instruction.keys[0].pubkey,
+      sourceStakePubKey: instruction.keys[1].pubkey,
+      authorizedPubkey: instruction.keys[4].pubkey,
+    };
   }
 
   /**
@@ -346,78 +436,239 @@ export class StakeInstruction {
   }
 
   /**
-   * Decode a split stake instruction and retrieve the instruction params.
+   * Decode an initialize-checked stake instruction and retrieve the instruction params.
    */
-  static decodeSplit(instruction: TransactionInstruction): SplitStakeParams {
+  static decodeInitializeChecked(
+      instruction: TransactionInstruction,
+  ): InitializeCheckedStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 3);
-    const {lamports} = decodeData(
-      STAKE_INSTRUCTION_LAYOUTS.Split,
-      instruction.data,
+    this.checkKeyLength(instruction.keys, 2);
+
+    const {
+      newAuthorized,
+      stakeAuthorizationType,
+      authoritySeed,
+      authorityOwner,
+    } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        instruction.data,
     );
 
-    return {
+    const o: AuthorizeWithSeedStakeParams = {
       stakePubkey: instruction.keys[0].pubkey,
-      splitStakePubkey: instruction.keys[1].pubkey,
-      authorizedPubkey: instruction.keys[2].pubkey,
-      lamports,
+      authorityBase: instruction.keys[1].pubkey,
+      authoritySeed: authoritySeed,
+      authorityOwner: new PublicKey(authorityOwner),
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
     };
-  }
-
-  /**
-   * Decode a merge stake instruction and retrieve the instruction params.
-   */
-  static decodeMerge(instruction: TransactionInstruction): MergeStakeParams {
-    this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 3);
-    decodeData(STAKE_INSTRUCTION_LAYOUTS.Merge, instruction.data);
-
-    return {
-      stakePubkey: instruction.keys[0].pubkey,
-      sourceStakePubKey: instruction.keys[1].pubkey,
-      authorizedPubkey: instruction.keys[4].pubkey,
-    };
-  }
-
-  /**
-   * Decode a withdraw stake instruction and retrieve the instruction params.
-   */
-  static decodeWithdraw(
-    instruction: TransactionInstruction,
-  ): WithdrawStakeParams {
-    this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 5);
-    const {lamports} = decodeData(
-      STAKE_INSTRUCTION_LAYOUTS.Withdraw,
-      instruction.data,
-    );
-
-    const o: WithdrawStakeParams = {
-      stakePubkey: instruction.keys[0].pubkey,
-      toPubkey: instruction.keys[1].pubkey,
-      authorizedPubkey: instruction.keys[4].pubkey,
-      lamports,
-    };
-    if (instruction.keys.length > 5) {
-      o.custodianPubkey = instruction.keys[5].pubkey;
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
     }
     return o;
   }
 
   /**
-   * Decode a deactivate stake instruction and retrieve the instruction params.
+   * Decode an authorize-checked stake instruction and retrieve the instruction params.
    */
-  static decodeDeactivate(
-    instruction: TransactionInstruction,
-  ): DeactivateStakeParams {
+  static decodeAuthorizeChecked(
+      instruction: TransactionInstruction,
+  ): AuthorizeCheckedStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 3);
-    decodeData(STAKE_INSTRUCTION_LAYOUTS.Deactivate, instruction.data);
+    this.checkKeyLength(instruction.keys, 2);
 
-    return {
+    const {
+      newAuthorized,
+      stakeAuthorizationType,
+      authoritySeed,
+      authorityOwner,
+    } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        instruction.data,
+    );
+
+    const o: AuthorizeWithSeedStakeParams = {
       stakePubkey: instruction.keys[0].pubkey,
-      authorizedPubkey: instruction.keys[2].pubkey,
+      authorityBase: instruction.keys[1].pubkey,
+      authoritySeed: authoritySeed,
+      authorityOwner: new PublicKey(authorityOwner),
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
     };
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
+    }
+    return o;
+  }
+
+  /**
+   * Decode an authorize-checked with seed stake instruction and retrieve the instruction params.
+   */
+  static decodeAuthorizeCheckedWithSeed(
+      instruction: TransactionInstruction,
+  ): AuthorizeCheckedWithSeedStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const {
+      newAuthorized,
+      stakeAuthorizationType,
+      authoritySeed,
+      authorityOwner,
+    } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        instruction.data,
+    );
+
+    const o: AuthorizeWithSeedStakeParams = {
+      stakePubkey: instruction.keys[0].pubkey,
+      authorityBase: instruction.keys[1].pubkey,
+      authoritySeed: authoritySeed,
+      authorityOwner: new PublicKey(authorityOwner),
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
+    };
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
+    }
+    return o;
+  }
+
+  /**
+   * Decode an set lockup checked stake instruction and retrieve the instruction params.
+   */
+  static decodeSetLockupChecked(
+      instruction: TransactionInstruction,
+  ): SetLockupCheckedStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const {
+      newAuthorized,
+      stakeAuthorizationType,
+      authoritySeed,
+      authorityOwner,
+    } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        instruction.data,
+    );
+
+    const o: AuthorizeWithSeedStakeParams = {
+      stakePubkey: instruction.keys[0].pubkey,
+      authorityBase: instruction.keys[1].pubkey,
+      authoritySeed: authoritySeed,
+      authorityOwner: new PublicKey(authorityOwner),
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
+    };
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
+    }
+    return o;
+  }
+
+  static decodeGetMinimumDelegation(
+      instruction: TransactionInstruction,
+  ): GetMinimumDelegationStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const {
+      newAuthorized,
+      stakeAuthorizationType,
+      authoritySeed,
+      authorityOwner,
+    } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        instruction.data,
+    );
+
+    const o: AuthorizeWithSeedStakeParams = {
+      stakePubkey: instruction.keys[0].pubkey,
+      authorityBase: instruction.keys[1].pubkey,
+      authoritySeed: authoritySeed,
+      authorityOwner: new PublicKey(authorityOwner),
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
+    };
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
+    }
+    return o;
+  }
+
+  static decodeDeactivateDelinquent(
+      instruction: TransactionInstruction,
+  ): DeactivateDelinquentStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const {
+      newAuthorized,
+      stakeAuthorizationType,
+      authoritySeed,
+      authorityOwner,
+    } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        instruction.data,
+    );
+
+    const o: AuthorizeWithSeedStakeParams = {
+      stakePubkey: instruction.keys[0].pubkey,
+      authorityBase: instruction.keys[1].pubkey,
+      authoritySeed: authoritySeed,
+      authorityOwner: new PublicKey(authorityOwner),
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
+    };
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
+    }
+    return o;
+  }
+
+  static decodeRedelegate(
+      instruction: TransactionInstruction,
+  ): RedelegateStakeParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const {
+      newAuthorized,
+      stakeAuthorizationType,
+      authoritySeed,
+      authorityOwner,
+    } = decodeData(
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        instruction.data,
+    );
+
+    const o: AuthorizeWithSeedStakeParams = {
+      stakePubkey: instruction.keys[0].pubkey,
+      authorityBase: instruction.keys[1].pubkey,
+      authoritySeed: authoritySeed,
+      authorityOwner: new PublicKey(authorityOwner),
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      stakeAuthorizationType: {
+        index: stakeAuthorizationType,
+      },
+    };
+    if (instruction.keys.length > 3) {
+      o.custodianPubkey = instruction.keys[3].pubkey;
+    }
+    return o;
   }
 
   /**
@@ -449,37 +700,35 @@ export type StakeInstructionType =
   // It would be preferable for this type to be `keyof StakeInstructionInputData`
   // but Typedoc does not transpile `keyof` expressions.
   // See https://github.com/TypeStrong/typedoc/issues/1894
-  | 'Authorize'
-  | 'AuthorizeWithSeed'
-  | 'Deactivate'
-  | 'Delegate'
   | 'Initialize'
-  | 'Merge'
+  | 'Authorize'
+  | 'Delegate'
   | 'Split'
-  | 'Withdraw';
+  | 'Withdraw'
+  | 'Deactivate'
+  | 'SetLockup'
+  | 'Merge'
+  | 'AuthorizeWithSeed'
+  | 'InitializeChecked'
+  | 'AuthorizeChecked'
+  | 'AuthorizeCheckedWithSeed'
+  | 'SetLockupChecked'
+  | 'GetMinimumDelegation'
+  | 'DeactivateDelinquent'
+  | 'Redelegate';
 
 type StakeInstructionInputData = {
-  Authorize: IInstructionInputData &
-    Readonly<{
-      newAuthorized: Uint8Array;
-      stakeAuthorizationType: number;
-    }>;
-  AuthorizeWithSeed: IInstructionInputData &
-    Readonly<{
-      authorityOwner: Uint8Array;
-      authoritySeed: string;
-      instruction: number;
-      newAuthorized: Uint8Array;
-      stakeAuthorizationType: number;
-    }>;
-  Deactivate: IInstructionInputData;
-  Delegate: IInstructionInputData;
   Initialize: IInstructionInputData &
     Readonly<{
       authorized: AuthorizedRaw;
       lockup: LockupRaw;
     }>;
-  Merge: IInstructionInputData;
+  Authorize: IInstructionInputData &
+    Readonly<{
+      newAuthorized: Uint8Array;
+      stakeAuthorizationType: number;
+    }>;
+  Delegate: IInstructionInputData;
   Split: IInstructionInputData &
     Readonly<{
       lamports: number;
@@ -488,6 +737,24 @@ type StakeInstructionInputData = {
     Readonly<{
       lamports: number;
     }>;
+  Deactivate: IInstructionInputData;
+  SetLockup: IInstructionInputData;
+  Merge: IInstructionInputData;
+  AuthorizeWithSeed: IInstructionInputData &
+    Readonly<{
+      authorityOwner: Uint8Array;
+      authoritySeed: string;
+      instruction: number;
+      newAuthorized: Uint8Array;
+      stakeAuthorizationType: number;
+    }>;
+  InitializeChecked: IInstructionInputData;
+  AuthorizeChecked: IInstructionInputData;
+  AuthorizeCheckedWithSeed: IInstructionInputData;
+  SetLockupChecked: IInstructionInputData;
+  GetMinimumDelegation: IInstructionInputData;
+  DeactivateDelinquent: IInstructionInputData;
+  Redelegate: IInstructionInputData;
 };
 
 /**
@@ -541,6 +808,12 @@ export const STAKE_INSTRUCTION_LAYOUTS = Object.freeze<{
       BufferLayout.u32('instruction'),
     ]),
   },
+  SetLockup: {
+    index: 6,
+    layout: BufferLayout.struct<StakeInstructionInputData['SetLockup']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  },
   Merge: {
     index: 7,
     layout: BufferLayout.struct<StakeInstructionInputData['Merge']>([
@@ -559,6 +832,48 @@ export const STAKE_INSTRUCTION_LAYOUTS = Object.freeze<{
       ],
     ),
   },
+  InitializeChecked: {
+    index: 9,
+    layout: BufferLayout.struct<StakeInstructionInputData['InitializeChecked']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  },
+  AuthorizeChecked: {
+    index: 10,
+    layout: BufferLayout.struct<StakeInstructionInputData['AuthorizeChecked']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  },
+  AuthorizeCheckedWithSeed: {
+    index: 11,
+    layout: BufferLayout.struct<StakeInstructionInputData['AuthorizeCheckedWithSeed']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  },
+  SetLockupChecked: {
+    index: 12,
+    layout: BufferLayout.struct<StakeInstructionInputData['SetLockupChecked']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  },
+  GetMinimumDelegation: {
+    index: 13,
+    layout: BufferLayout.struct<StakeInstructionInputData['GetMinimumDelegation']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  },
+  DeactivateDelinquent: {
+    index: 14,
+    layout: BufferLayout.struct<StakeInstructionInputData['DeactivateDelinquent']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  },
+  Redelegate: {
+    index: 15,
+    layout: BufferLayout.struct<StakeInstructionInputData['Redelegate']>([
+      BufferLayout.u32('instruction'),
+    ]),
+  }
 });
 
 /**
