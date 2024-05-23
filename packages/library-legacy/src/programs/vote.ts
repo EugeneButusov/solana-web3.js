@@ -359,6 +359,21 @@ export class VoteInstruction {
     };
   }
 
+  static decodeUpdateValidatorIdentity(
+      instruction: TransactionInstruction,
+  ): UpdateValidatorIdentityParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 3);
+
+    decodeData(VOTE_INSTRUCTION_LAYOUTS.UpdateValidatorIdentity, instruction.data);
+
+    return {
+      votePubkey: instruction.keys[0].pubkey,
+      authorizedWithdrawerPubkey: instruction.keys[2].pubkey,
+      nodePubkey: instruction.keys[1].pubkey,
+    };
+  }
+
   static decodeUpdateCommission(
       instruction: TransactionInstruction,
   ): UpdateCommissionVoteParams {
