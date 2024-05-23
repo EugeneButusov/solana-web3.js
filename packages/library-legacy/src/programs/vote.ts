@@ -108,6 +108,18 @@ export type CompactUpdateVoteStateParams = {
   },
 };
 
+export type CompactUpdateVoteStateSwitchParams = {
+  voteAccount: PublicKey,
+  voteAuthority: PublicKey,
+  voteStateUpdate: {
+    lockouts: Lockout[],
+    root: number,
+    hash: PublicKey,
+    timestamp?: number,
+  },
+  hash: PublicKey,
+};
+
 /**
  * Vote Instruction class
  */
@@ -286,6 +298,42 @@ export class VoteInstruction {
   }
 
   /**
+   * Decode a compact update vote state instruction and retrieve the instruction params.
+   */
+  static decodeCompactUpdateVoteStateSwitch(
+      instruction: TransactionInstruction,
+  ): CompactUpdateVoteStateSwitchParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const { voteStateUpdate, hash } = decodeData(
+        VOTE_INSTRUCTION_LAYOUTS.CompactUpdateVoteStateSwitch,
+        instruction.data,
+    );
+    let lockoutSlot = voteStateUpdate.root;
+
+    return {
+      voteAccount: instruction.keys[0].pubkey,
+      voteAuthority: instruction.keys[1].pubkey,
+      voteStateUpdate: {
+        lockouts: voteStateUpdate.lockoutOffsets.map(
+            (lockoutOffset: {
+              offset: number;
+              confirmationCount: number;
+            }) => ({
+              slot: (lockoutSlot = lockoutSlot + lockoutOffset.offset),
+              confirmationCount: lockoutOffset.confirmationCount,
+            })
+        ),
+        root: voteStateUpdate.root,
+        hash: new PublicKey(voteStateUpdate.hash),
+        timestamp: voteStateUpdate.timestampOption ? voteStateUpdate.timestamp : undefined,
+      },
+      hash: new PublicKey(hash),
+    };
+  }
+
+  /**
    * @internal
    */
   static checkProgramId(programId: PublicKey) {
@@ -319,7 +367,8 @@ export type VoteInstructionType =
   | 'InitializeAccount'
   | 'Withdraw'
   | 'UpdateValidatorIdentity'
-  | 'CompactUpdateVoteState';
+  | 'CompactUpdateVoteState'
+  | 'CompactUpdateVoteStateSwitch';
 
 /** @internal */
 export type VoteAuthorizeWithSeedArgs = Readonly<{
@@ -359,6 +408,19 @@ type VoteInstructionInputData = {
       timestampOption: number;
       timestamp?: number;
     };
+  };
+  CompactUpdateVoteStateSwitch: IInstructionInputData & {
+    voteStateUpdate: {
+      lockoutOffsets: {
+        offset: number;
+        confirmationCount: number;
+      }[];
+      root: number;
+      hash: Uint8Array,
+      timestampOption: number;
+      timestamp?: number;
+    };
+    hash: Uint8Array,
   };
 };
 
@@ -419,6 +481,24 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
       ], 'voteStateUpdate'),
     ]),
   },
+  CompactUpdateVoteStateSwitch: {
+    index: 13,
+    layout: BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteStateSwitch']>([
+      BufferLayout.u32('instruction'),
+      BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']>([
+        BufferLayout.nu64('root'),
+        BufferLayout.u8(), // lockoutOffsets.length
+        BufferLayout.seq(BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']['lockoutOffsets'][number]>([
+          BufferLayout.u8('offset'),
+          BufferLayout.u8('confirmationCount'),
+        ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
+        Layout.publicKey('hash'),
+        BufferLayout.u8('timestampOption'),
+        BufferLayout.nu64('timestamp'),
+      ], 'voteStateUpdate'),
+      Layout.publicKey('hash'),
+    ]),
+  }
 });
 
 /**
