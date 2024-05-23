@@ -13,6 +13,7 @@ import {SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY} from '../sysvar';
 import {Transaction, TransactionInstruction} from '../transaction';
 import {toBuffer} from '../utils/to-buffer';
 import { Lockout } from '../vote-account';
+import { publicKey, rustString } from '../layout';
 
 /**
  * Vote account info
@@ -236,9 +237,9 @@ export class VoteInstruction {
       instruction: TransactionInstruction,
   ): AuthorizeVoteParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 3);
+    this.checkKeyLength(instruction.keys, 4);
 
-    const {newAuthorized, voteAuthorizationType} = decodeData(
+    const { voteAuthorizationType } = decodeData(
         VOTE_INSTRUCTION_LAYOUTS.AuthorizeChecked,
         instruction.data,
     );
@@ -246,7 +247,7 @@ export class VoteInstruction {
     return {
       votePubkey: instruction.keys[0].pubkey,
       authorizedPubkey: instruction.keys[2].pubkey,
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      newAuthorizedPubkey: instruction.keys[3].pubkey,
       voteAuthorizationType: {
         index: voteAuthorizationType,
       },
@@ -292,13 +293,12 @@ export class VoteInstruction {
       instruction: TransactionInstruction,
   ): AuthorizeVoteWithSeedParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 3);
+    this.checkKeyLength(instruction.keys, 4);
 
     const {
       voteAuthorizeWithSeedArgs: {
         currentAuthorityDerivedKeyOwnerPubkey,
         currentAuthorityDerivedKeySeed,
-        newAuthorized,
         voteAuthorizationType,
       },
     } = decodeData(
@@ -307,16 +307,16 @@ export class VoteInstruction {
     );
 
     return {
+      votePubkey: instruction.keys[0].pubkey,
       currentAuthorityDerivedKeyBasePubkey: instruction.keys[2].pubkey,
       currentAuthorityDerivedKeyOwnerPubkey: new PublicKey(
           currentAuthorityDerivedKeyOwnerPubkey,
       ),
       currentAuthorityDerivedKeySeed: currentAuthorityDerivedKeySeed,
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      newAuthorizedPubkey: instruction.keys[3].pubkey,
       voteAuthorizationType: {
         index: voteAuthorizationType,
       },
-      votePubkey: instruction.keys[0].pubkey,
     };
   }
 
@@ -573,7 +573,13 @@ type VoteInstructionInputData = {
   AuthorizeWithSeed: IInstructionInputData & {
     voteAuthorizeWithSeedArgs: VoteAuthorizeWithSeedArgs;
   };
-  AuthorizeCheckedWithSeed: IInstructionInputData;
+  AuthorizeCheckedWithSeed: IInstructionInputData & {
+    voteAuthorizeWithSeedArgs: {
+      currentAuthorityDerivedKeyOwnerPubkey: Uint8Array;
+      currentAuthorityDerivedKeySeed: string;
+      voteAuthorizationType: number;
+    };
+  };
   InitializeAccount: IInstructionInputData & {
     voteInit: Readonly<{
       authorizedVoter: Uint8Array;
@@ -629,7 +635,9 @@ type VoteInstructionInputData = {
     };
     hash: Uint8Array;
   };
-  AuthorizeChecked: IInstructionInputData;
+  AuthorizeChecked: IInstructionInputData & {
+    voteAuthorizationType: number;
+  };
   UpdateVoteState: IInstructionInputData & {
     voteStateUpdate: {
       lockouts: {
@@ -726,9 +734,10 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
   },
   AuthorizeChecked: {
     index: 7,
-    layout: BufferLayout.struct<
-        VoteInstructionInputData['AuthorizeChecked']
-    >([BufferLayout.u32('instruction')]),
+    layout: BufferLayout.struct<VoteInstructionInputData['Authorize']>([
+      BufferLayout.u32('instruction'),
+      BufferLayout.u32('voteAuthorizationType'),
+    ]),
   },
   UpdateVoteState: {
     index: 8,
@@ -774,7 +783,14 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
     index: 11,
     layout: BufferLayout.struct<VoteInstructionInputData['AuthorizeCheckedWithSeed']>([
       BufferLayout.u32('instruction'),
-      Layout.voteAuthorizeWithSeedArgs(),
+      BufferLayout.struct<VoteAuthorizeWithSeedArgs>(
+          [
+            BufferLayout.u32('voteAuthorizationType'),
+            publicKey('currentAuthorityDerivedKeyOwnerPubkey'),
+            rustString('currentAuthorityDerivedKeySeed'),
+          ],
+          'voteAuthorizeWithSeedArgs',
+      ),
     ]),
   },
   CompactUpdateVoteState: {
