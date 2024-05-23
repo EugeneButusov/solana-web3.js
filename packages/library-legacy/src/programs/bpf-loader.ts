@@ -136,7 +136,7 @@ export const BPF_LOADER_INSTRUCTION_LAYOUTS = Object.freeze<{
     ]),
   },
   Finalize: {
-    index: 0,
+    index: 1,
     layout: BufferLayout.struct<BpfLoaderInstructionInputData['Finalize']>([
       BufferLayout.u32('instruction'),
     ]),

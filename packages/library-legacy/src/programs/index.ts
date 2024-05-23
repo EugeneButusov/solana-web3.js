@@ -6,3 +6,4 @@ export * from './stake';
 export * from './system';
 export * from './vote';
 export * from './bpf-loader';
+export * from './bpf-upgradeable-loader';
