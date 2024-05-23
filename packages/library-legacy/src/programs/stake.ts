@@ -492,7 +492,7 @@ export class StakeInstruction {
    */
   static decodeAuthorizeChecked(
       instruction: TransactionInstruction,
-  ): AuthorizeCheckedStakeParams {
+  ): AuthorizeStakeParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 4);
 
@@ -503,7 +503,7 @@ export class StakeInstruction {
         instruction.data,
     );
 
-    const o: AuthorizeCheckedStakeParams = {
+    const o: AuthorizeStakeParams = {
       stakePubkey: instruction.keys[0].pubkey,
       authorizedPubkey: instruction.keys[2].pubkey,
       newAuthorizedPubkey: instruction.keys[3].pubkey,
@@ -522,12 +522,11 @@ export class StakeInstruction {
    */
   static decodeAuthorizeCheckedWithSeed(
       instruction: TransactionInstruction,
-  ): AuthorizeCheckedWithSeedStakeParams {
+  ): AuthorizeWithSeedStakeParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 4);
 
     const {
-      newAuthorized,
       stakeAuthorizationType,
       authoritySeed,
       authorityOwner,
@@ -536,7 +535,7 @@ export class StakeInstruction {
         instruction.data,
     );
 
-    const o: AuthorizeCheckedWithSeedStakeParams = {
+    const o: AuthorizeWithSeedStakeParams = {
       stakePubkey: instruction.keys[0].pubkey,
       authorityBase: instruction.keys[1].pubkey,
       authoritySeed: authoritySeed,
@@ -706,8 +705,18 @@ type StakeInstructionInputData = {
       stakeAuthorizationType: number;
     }>;
   InitializeChecked: IInstructionInputData;
-  AuthorizeChecked: IInstructionInputData;
-  AuthorizeCheckedWithSeed: IInstructionInputData;
+  AuthorizeChecked: IInstructionInputData &
+    Readonly<{
+      stakeAuthorizationType: number;
+    }>;
+  AuthorizeCheckedWithSeed: IInstructionInputData &
+    Readonly<{
+      authorityOwner: Uint8Array;
+      authoritySeed: string;
+      instruction: number;
+      newAuthorized: Uint8Array;
+      stakeAuthorizationType: number;
+    }>;
   SetLockupChecked: IInstructionInputData & Readonly<{
     lockup: LockupRaw;
   }>;
@@ -802,12 +811,16 @@ export const STAKE_INSTRUCTION_LAYOUTS = Object.freeze<{
     index: 10,
     layout: BufferLayout.struct<StakeInstructionInputData['AuthorizeChecked']>([
       BufferLayout.u32('instruction'),
+      BufferLayout.u32('stakeAuthorizationType'),
     ]),
   },
   AuthorizeCheckedWithSeed: {
     index: 11,
     layout: BufferLayout.struct<StakeInstructionInputData['AuthorizeCheckedWithSeed']>([
       BufferLayout.u32('instruction'),
+      BufferLayout.u32('stakeAuthorizationType'),
+      Layout.rustString('authoritySeed'),
+      Layout.publicKey('authorityOwner'),
     ]),
   },
   SetLockupChecked: {
