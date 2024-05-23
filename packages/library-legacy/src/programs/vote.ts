@@ -88,6 +88,26 @@ export type WithdrawFromVoteAccountParams = {
   toPubkey: PublicKey;
 };
 
+export type VoteParams = {
+  accountPubkey: PublicKey;
+  authorizedPubkey: PublicKey;
+  vote: {
+    slots: number[];
+    hash: PublicKey;
+    timestamp: number;
+  };
+};
+
+export type VoteSwitchParams = VoteParams & {
+  hash: PublicKey;
+};
+
+export type UpdateCommissionVoteParams = {
+  accountPubkey: PublicKey;
+  authorizedPubkey: PublicKey;
+  commission: number;
+};
+
 /**
  * Update validator identity (node pubkey) vote account instruction params.
  */
@@ -95,6 +115,21 @@ export type UpdateValidatorIdentityParams = {
   votePubkey: PublicKey;
   authorizedWithdrawerPubkey: PublicKey;
   nodePubkey: PublicKey;
+};
+
+export type UpdateVoteStateParams = {
+  voteAccount: PublicKey,
+  voteAuthority: PublicKey,
+  voteStateUpdate: {
+    lockouts: Lockout[],
+    root: number,
+    hash: PublicKey,
+    timestamp?: number,
+  },
+};
+
+export type UpdateVoteStateSwitchParams = UpdateVoteStateParams & {
+  hash: PublicKey,
 };
 
 export type CompactUpdateVoteStateParams = {
@@ -108,15 +143,7 @@ export type CompactUpdateVoteStateParams = {
   },
 };
 
-export type CompactUpdateVoteStateSwitchParams = {
-  voteAccount: PublicKey,
-  voteAuthority: PublicKey,
-  voteStateUpdate: {
-    lockouts: Lockout[],
-    root: number,
-    hash: PublicKey,
-    timestamp?: number,
-  },
+export type CompactUpdateVoteStateSwitchParams = CompactUpdateVoteStateParams & {
   hash: PublicKey,
 };
 
@@ -205,6 +232,27 @@ export class VoteInstruction {
     };
   }
 
+  static decodeAuthorizeChecked(
+      instruction: TransactionInstruction,
+  ): AuthorizeVoteParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 3);
+
+    const {newAuthorized, voteAuthorizationType} = decodeData(
+        VOTE_INSTRUCTION_LAYOUTS.AuthorizeChecked,
+        instruction.data,
+    );
+
+    return {
+      votePubkey: instruction.keys[0].pubkey,
+      authorizedPubkey: instruction.keys[2].pubkey,
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      voteAuthorizationType: {
+        index: voteAuthorizationType,
+      },
+    };
+  }
+
   /**
    * Decode an authorize instruction and retrieve the instruction params.
    */
@@ -240,6 +288,92 @@ export class VoteInstruction {
     };
   }
 
+  static decodeAuthorizeCheckedWithSeed(
+      instruction: TransactionInstruction,
+  ): AuthorizeVoteWithSeedParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 3);
+
+    const {
+      voteAuthorizeWithSeedArgs: {
+        currentAuthorityDerivedKeyOwnerPubkey,
+        currentAuthorityDerivedKeySeed,
+        newAuthorized,
+        voteAuthorizationType,
+      },
+    } = decodeData(
+        VOTE_INSTRUCTION_LAYOUTS.AuthorizeCheckedWithSeed,
+        instruction.data,
+    );
+
+    return {
+      currentAuthorityDerivedKeyBasePubkey: instruction.keys[2].pubkey,
+      currentAuthorityDerivedKeyOwnerPubkey: new PublicKey(
+          currentAuthorityDerivedKeyOwnerPubkey,
+      ),
+      currentAuthorityDerivedKeySeed: currentAuthorityDerivedKeySeed,
+      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      voteAuthorizationType: {
+        index: voteAuthorizationType,
+      },
+      votePubkey: instruction.keys[0].pubkey,
+    };
+  }
+
+  static decodeVote(
+      instruction: TransactionInstruction,
+  ): VoteParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 4);
+
+    const { vote } = decodeData(VOTE_INSTRUCTION_LAYOUTS.Vote, instruction.data);
+
+    return {
+      accountPubkey: instruction.keys[0].pubkey,
+      authorizedPubkey: instruction.keys[3].pubkey,
+      vote: {
+        slots: vote.slots,
+        hash: new PublicKey(vote.hash),
+        timestamp: vote.timestamp,
+      },
+    };
+  }
+
+  static decodeVoteSwitch(
+      instruction: TransactionInstruction,
+  ): VoteSwitchParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 4);
+
+    const { vote, hash } = decodeData(VOTE_INSTRUCTION_LAYOUTS.VoteSwitch, instruction.data);
+
+    return {
+      accountPubkey: instruction.keys[0].pubkey,
+      authorizedPubkey: instruction.keys[3].pubkey,
+      hash: new PublicKey(hash),
+      vote: {
+        slots: vote.slots,
+        hash: new PublicKey(vote.hash),
+        timestamp: vote.timestamp,
+      },
+    };
+  }
+
+  static decodeUpdateCommission(
+      instruction: TransactionInstruction,
+  ): UpdateCommissionVoteParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const { commission } = decodeData(VOTE_INSTRUCTION_LAYOUTS.UpdateCommission, instruction.data);
+
+    return {
+      accountPubkey: instruction.keys[0].pubkey,
+      authorizedPubkey: instruction.keys[1].pubkey,
+      commission,
+    };
+  }
+
   /**
    * Decode a withdraw instruction and retrieve the instruction params.
    */
@@ -259,6 +393,53 @@ export class VoteInstruction {
       authorizedWithdrawerPubkey: instruction.keys[2].pubkey,
       lamports,
       toPubkey: instruction.keys[1].pubkey,
+    };
+  }
+
+  static decodeUpdateVoteState(
+      instruction: TransactionInstruction,
+  ): UpdateVoteStateParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const { voteStateUpdate: { lockouts, root, hash, timestampOption, timestamp }  } = decodeData(
+        VOTE_INSTRUCTION_LAYOUTS.UpdateVoteState,
+        instruction.data,
+    );
+
+    return {
+      voteAccount: instruction.keys[0].pubkey,
+      voteAuthority: instruction.keys[1].pubkey,
+      voteStateUpdate: {
+        lockouts,
+        root,
+        hash: new PublicKey(hash),
+        timestamp: timestampOption ? timestamp : undefined,
+      },
+    };
+  }
+
+  static decodeUpdateVoteStateSwitch(
+      instruction: TransactionInstruction,
+  ): UpdateVoteStateSwitchParams {
+    this.checkProgramId(instruction.programId);
+    this.checkKeyLength(instruction.keys, 2);
+
+    const { voteStateUpdate, hash } = decodeData(
+        VOTE_INSTRUCTION_LAYOUTS.UpdateVoteStateSwitch,
+        instruction.data,
+    );
+
+    return {
+      voteAccount: instruction.keys[0].pubkey,
+      voteAuthority: instruction.keys[1].pubkey,
+      voteStateUpdate: {
+        lockouts: voteStateUpdate.lockouts,
+        root: voteStateUpdate.root,
+        hash: new PublicKey(voteStateUpdate.hash),
+        timestamp: voteStateUpdate.timestampOption ? voteStateUpdate.timestamp : undefined,
+      },
+      hash: new PublicKey(hash),
     };
   }
 
@@ -362,13 +543,20 @@ export type VoteInstructionType =
   // It would be preferable for this type to be `keyof VoteInstructionInputData`
   // but Typedoc does not transpile `keyof` expressions.
   // See https://github.com/TypeStrong/typedoc/issues/1894
+  | 'InitializeAccount'
   | 'Authorize'
   | 'AuthorizeWithSeed'
-  | 'InitializeAccount'
+  | 'AuthorizeCheckedWithSeed'
+  | 'Vote'
+  | 'UpdateVoteState'
+  | 'UpdateVoteStateSwitch'
+  | 'CompactUpdateVoteState'
+  | 'CompactUpdateVoteStateSwitch'
   | 'Withdraw'
   | 'UpdateValidatorIdentity'
-  | 'CompactUpdateVoteState'
-  | 'CompactUpdateVoteStateSwitch';
+  | 'UpdateCommission'
+  | 'VoteSwitch'
+  | 'AuthorizeChecked';
 
 /** @internal */
 export type VoteAuthorizeWithSeedArgs = Readonly<{
@@ -385,6 +573,7 @@ type VoteInstructionInputData = {
   AuthorizeWithSeed: IInstructionInputData & {
     voteAuthorizeWithSeedArgs: VoteAuthorizeWithSeedArgs;
   };
+  AuthorizeCheckedWithSeed: IInstructionInputData;
   InitializeAccount: IInstructionInputData & {
     voteInit: Readonly<{
       authorizedVoter: Uint8Array;
@@ -422,6 +611,50 @@ type VoteInstructionInputData = {
     };
     hash: Uint8Array,
   };
+  Vote: IInstructionInputData & {
+    vote: {
+      slots: number[];
+      hash: Uint8Array;
+      timestamp: number;
+    };
+  };
+  UpdateCommission: IInstructionInputData & {
+    commission: number;
+  };
+  VoteSwitch: IInstructionInputData & {
+    vote: {
+      slots: number[];
+      hash: Uint8Array;
+      timestamp: number;
+    };
+    hash: Uint8Array;
+  };
+  AuthorizeChecked: IInstructionInputData;
+  UpdateVoteState: IInstructionInputData & {
+    voteStateUpdate: {
+      lockouts: {
+        slot: number;
+        confirmationCount: number;
+      }[];
+      root: number;
+      hash: Uint8Array;
+      timestampOption: number;
+      timestamp?: number;
+    };
+  };
+  UpdateVoteStateSwitch: IInstructionInputData & {
+    voteStateUpdate: {
+      lockouts: {
+        slot: number;
+        confirmationCount: number;
+      }[];
+      root: number;
+      hash: Uint8Array;
+      timestampOption: number;
+      timestamp?: number;
+    };
+    hash: Uint8Array;
+  };
 };
 
 const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
@@ -444,6 +677,19 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
       BufferLayout.u32('voteAuthorizationType'),
     ]),
   },
+  Vote: {
+    index: 2,
+    layout: BufferLayout.struct<VoteInstructionInputData['Vote']>([
+      BufferLayout.u32('instruction'),
+      BufferLayout.struct<VoteInstructionInputData['Vote']['vote']>([
+        BufferLayout.u8(), // slots.length
+        BufferLayout.seq(BufferLayout.nu64(), BufferLayout.offset(BufferLayout.u8(), -1), 'slots'),
+        Layout.publicKey('hash'),
+        BufferLayout.u8('timestampOption'),
+        BufferLayout.nu64('timestamp'),
+      ], 'vote'),
+    ]),
+  },
   Withdraw: {
     index: 3,
     layout: BufferLayout.struct<VoteInstructionInputData['Withdraw']>([
@@ -457,9 +703,76 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
       VoteInstructionInputData['UpdateValidatorIdentity']
     >([BufferLayout.u32('instruction')]),
   },
+  UpdateCommission: {
+    index: 5,
+    layout: BufferLayout.struct<VoteInstructionInputData['UpdateCommission']>([
+      BufferLayout.u32('instruction'),
+      BufferLayout.u8('commission'),
+    ]),
+  },
+  VoteSwitch: {
+    index: 6,
+    layout: BufferLayout.struct<VoteInstructionInputData['VoteSwitch']>([
+      BufferLayout.u32('instruction'),
+      BufferLayout.struct<VoteInstructionInputData['VoteSwitch']['vote']>([
+        BufferLayout.u8(), // slots.length
+        BufferLayout.seq(BufferLayout.nu64(), BufferLayout.offset(BufferLayout.u8(), -1), 'slots'),
+        Layout.publicKey('hash'),
+        BufferLayout.u8('timestampOption'),
+        BufferLayout.nu64('timestamp'),
+      ], 'vote'),
+      Layout.publicKey('hash'),
+    ]),
+  },
+  AuthorizeChecked: {
+    index: 7,
+    layout: BufferLayout.struct<
+        VoteInstructionInputData['AuthorizeChecked']
+    >([BufferLayout.u32('instruction')]),
+  },
+  UpdateVoteState: {
+    index: 8,
+    layout: BufferLayout.struct<VoteInstructionInputData['UpdateVoteState']>([
+      BufferLayout.u32('instruction'),
+      BufferLayout.struct<VoteInstructionInputData['UpdateVoteStateSwitch']['voteStateUpdate']>([
+        BufferLayout.u8(), // lockouts.length
+        BufferLayout.seq(BufferLayout.struct<VoteInstructionInputData['UpdateVoteStateSwitch']['voteStateUpdate']['lockouts'][number]>([
+          BufferLayout.nu64('slot'),
+          BufferLayout.u32('confirmationCount'),
+        ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockouts'),
+        Layout.publicKey('hash'),
+        BufferLayout.u8('timestampOption'),
+        BufferLayout.nu64('timestamp'),
+      ], 'voteStateUpdate'),
+    ]),
+  },
+  UpdateVoteStateSwitch: {
+    index: 9,
+    layout: BufferLayout.struct<VoteInstructionInputData['UpdateVoteStateSwitch']>([
+      BufferLayout.u32('instruction'),
+      BufferLayout.struct<VoteInstructionInputData['UpdateVoteStateSwitch']['voteStateUpdate']>([
+        BufferLayout.u8(), // lockouts.length
+        BufferLayout.seq(BufferLayout.struct<VoteInstructionInputData['UpdateVoteStateSwitch']['voteStateUpdate']['lockouts'][number]>([
+          BufferLayout.nu64('slot'),
+          BufferLayout.u32('confirmationCount'),
+        ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockouts'),
+        Layout.publicKey('hash'),
+        BufferLayout.u8('timestampOption'),
+        BufferLayout.nu64('timestamp'),
+      ], 'voteStateUpdate'),
+      Layout.publicKey('hash'),
+    ]),
+  },
   AuthorizeWithSeed: {
     index: 10,
     layout: BufferLayout.struct<VoteInstructionInputData['AuthorizeWithSeed']>([
+      BufferLayout.u32('instruction'),
+      Layout.voteAuthorizeWithSeedArgs(),
+    ]),
+  },
+  AuthorizeCheckedWithSeed: {
+    index: 11,
+    layout: BufferLayout.struct<VoteInstructionInputData['AuthorizeCheckedWithSeed']>([
       BufferLayout.u32('instruction'),
       Layout.voteAuthorizeWithSeedArgs(),
     ]),
