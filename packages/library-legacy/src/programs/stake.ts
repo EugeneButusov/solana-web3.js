@@ -194,12 +194,39 @@ export type DeactivateStakeParams = {
   authorizedPubkey: PublicKey;
 };
 
+export type InitializeCheckedStakeParams = {
+  stakePubkey: PublicKey;
+  stakerPubkey: PublicKey;
+  withdrawerPubkey: PublicKey;
+};
+
 /**
  * Merge stake instruction params
  */
 export type MergeStakeParams = {
   stakePubkey: PublicKey;
   sourceStakePubKey: PublicKey;
+  authorizedPubkey: PublicKey;
+};
+
+/**
+ * DeactivateDelinquent stake instruction params
+ */
+
+export type DeactivateDelinquentStakeParams = {
+  stakePubkey: PublicKey;
+  votePubkey: PublicKey;
+  referenceVotePubkey: PublicKey;
+};
+
+/**
+ * Redelegate stake instruction params
+ */
+export type RedelegateStakeParams = {
+  stakePubkey: PublicKey;
+  newStakePubkey: PublicKey;
+  votePubkey: PublicKey;
+  stakeConfigPubkey: PublicKey;
   authorizedPubkey: PublicKey;
 };
 
@@ -373,7 +400,7 @@ export class StakeInstruction {
   /**
    * Decode a set lookup instruction and retrieve the instruction params.
    */
-  static decodeSetLockup(instruction: TransactionInstruction): MergeStakeParams {
+  static decodeSetLockup(instruction: TransactionInstruction): SetLockupStakeParams {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 3);
     decodeData(STAKE_INSTRUCTION_LAYOUTS.Merge, instruction.data);
@@ -442,32 +469,13 @@ export class StakeInstruction {
       instruction: TransactionInstruction,
   ): InitializeCheckedStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 2);
+    this.checkKeyLength(instruction.keys, 4);
 
-    const {
-      newAuthorized,
-      stakeAuthorizationType,
-      authoritySeed,
-      authorityOwner,
-    } = decodeData(
-        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
-        instruction.data,
-    );
-
-    const o: AuthorizeWithSeedStakeParams = {
+    return {
       stakePubkey: instruction.keys[0].pubkey,
-      authorityBase: instruction.keys[1].pubkey,
-      authoritySeed: authoritySeed,
-      authorityOwner: new PublicKey(authorityOwner),
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
-      stakeAuthorizationType: {
-        index: stakeAuthorizationType,
-      },
+      stakerPubkey: instruction.keys[2].pubkey,
+      withdrawerPubkey: instruction.keys[3].pubkey,
     };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
-    }
-    return o;
   }
 
   /**
@@ -477,30 +485,25 @@ export class StakeInstruction {
       instruction: TransactionInstruction,
   ): AuthorizeCheckedStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 2);
+    this.checkKeyLength(instruction.keys, 4);
 
     const {
-      newAuthorized,
       stakeAuthorizationType,
-      authoritySeed,
-      authorityOwner,
     } = decodeData(
-        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeChecked,
         instruction.data,
     );
 
-    const o: AuthorizeWithSeedStakeParams = {
+    const o: AuthorizeCheckedStakeParams = {
       stakePubkey: instruction.keys[0].pubkey,
-      authorityBase: instruction.keys[1].pubkey,
-      authoritySeed: authoritySeed,
-      authorityOwner: new PublicKey(authorityOwner),
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      authorizedPubkey: instruction.keys[2].pubkey,
+      newAuthorizedPubkey: instruction.keys[3].pubkey,
       stakeAuthorizationType: {
         index: stakeAuthorizationType,
       },
     };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
+    if (instruction.keys.length > 4) {
+      o.custodianPubkey = instruction.keys[4].pubkey;
     }
     return o;
   }
@@ -512,7 +515,7 @@ export class StakeInstruction {
       instruction: TransactionInstruction,
   ): AuthorizeCheckedWithSeedStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 2);
+    this.checkKeyLength(instruction.keys, 4);
 
     const {
       newAuthorized,
@@ -520,22 +523,22 @@ export class StakeInstruction {
       authoritySeed,
       authorityOwner,
     } = decodeData(
-        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
+        STAKE_INSTRUCTION_LAYOUTS.AuthorizeCheckedWithSeed,
         instruction.data,
     );
 
-    const o: AuthorizeWithSeedStakeParams = {
+    const o: AuthorizeCheckedWithSeedStakeParams = {
       stakePubkey: instruction.keys[0].pubkey,
       authorityBase: instruction.keys[1].pubkey,
       authoritySeed: authoritySeed,
       authorityOwner: new PublicKey(authorityOwner),
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
+      newAuthorizedPubkey: instruction.keys[3].pubkey,
       stakeAuthorizationType: {
         index: stakeAuthorizationType,
       },
     };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
+    if (instruction.keys.length > 4) {
+      o.custodianPubkey = instruction.keys[4].pubkey;
     }
     return o;
   }
@@ -577,98 +580,37 @@ export class StakeInstruction {
 
   static decodeGetMinimumDelegation(
       instruction: TransactionInstruction,
-  ): GetMinimumDelegationStakeParams {
+  ): {} {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 2);
-
-    const {
-      newAuthorized,
-      stakeAuthorizationType,
-      authoritySeed,
-      authorityOwner,
-    } = decodeData(
-        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
-        instruction.data,
-    );
-
-    const o: AuthorizeWithSeedStakeParams = {
-      stakePubkey: instruction.keys[0].pubkey,
-      authorityBase: instruction.keys[1].pubkey,
-      authoritySeed: authoritySeed,
-      authorityOwner: new PublicKey(authorityOwner),
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
-      stakeAuthorizationType: {
-        index: stakeAuthorizationType,
-      },
-    };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
-    }
-    return o;
+    return {};
   }
 
   static decodeDeactivateDelinquent(
       instruction: TransactionInstruction,
   ): DeactivateDelinquentStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 2);
+    this.checkKeyLength(instruction.keys, 3);
 
-    const {
-      newAuthorized,
-      stakeAuthorizationType,
-      authoritySeed,
-      authorityOwner,
-    } = decodeData(
-        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
-        instruction.data,
-    );
-
-    const o: AuthorizeWithSeedStakeParams = {
+    return {
       stakePubkey: instruction.keys[0].pubkey,
-      authorityBase: instruction.keys[1].pubkey,
-      authoritySeed: authoritySeed,
-      authorityOwner: new PublicKey(authorityOwner),
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
-      stakeAuthorizationType: {
-        index: stakeAuthorizationType,
-      },
+      votePubkey: instruction.keys[1].pubkey,
+      referenceVotePubkey: instruction.keys[2].pubkey,
     };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
-    }
-    return o;
   }
 
   static decodeRedelegate(
       instruction: TransactionInstruction,
   ): RedelegateStakeParams {
     this.checkProgramId(instruction.programId);
-    this.checkKeyLength(instruction.keys, 2);
+    this.checkKeyLength(instruction.keys, 5);
 
-    const {
-      newAuthorized,
-      stakeAuthorizationType,
-      authoritySeed,
-      authorityOwner,
-    } = decodeData(
-        STAKE_INSTRUCTION_LAYOUTS.AuthorizeWithSeed,
-        instruction.data,
-    );
-
-    const o: AuthorizeWithSeedStakeParams = {
+    return {
       stakePubkey: instruction.keys[0].pubkey,
-      authorityBase: instruction.keys[1].pubkey,
-      authoritySeed: authoritySeed,
-      authorityOwner: new PublicKey(authorityOwner),
-      newAuthorizedPubkey: new PublicKey(newAuthorized),
-      stakeAuthorizationType: {
-        index: stakeAuthorizationType,
-      },
+      newStakePubkey: instruction.keys[1].pubkey,
+      votePubkey: instruction.keys[2].pubkey,
+      stakeConfigPubkey: instruction.keys[3].pubkey,
+      authorizedPubkey: instruction.keys[4].pubkey,
     };
-    if (instruction.keys.length > 3) {
-      o.custodianPubkey = instruction.keys[3].pubkey;
-    }
-    return o;
   }
 
   /**
