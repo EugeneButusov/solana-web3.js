@@ -67,7 +67,7 @@ export class BpfLoaderInstruction {
     return {
       account: instruction.keys[0].pubkey,
       offset,
-      bytes,
+      bytes: new Uint8Array(bytes),
     };
   }
 
@@ -113,7 +113,7 @@ export type BpfLoaderInstructionType = 'Write' | 'Finalize';
 type BpfLoaderInstructionInputData = {
   Write: IInstructionInputData & {
     offset: number;
-    bytes: Uint8Array;
+    bytes: number[];
   };
   Finalize: IInstructionInputData;
 };
@@ -132,7 +132,13 @@ export const BPF_LOADER_INSTRUCTION_LAYOUTS = Object.freeze<{
     layout: BufferLayout.struct<BpfLoaderInstructionInputData['Write']>([
       BufferLayout.u32('instruction'),
       BufferLayout.u32('offset'),
-      BufferLayout.blob(BufferLayout.greedy(BufferLayout.u8().span), 'bytes'),
+      BufferLayout.u32('bytesLength'),
+      BufferLayout.u32('bytesLengthPadding'),
+      BufferLayout.seq(
+          BufferLayout.u8('byte'),
+          BufferLayout.offset(BufferLayout.u32(), -8),
+          'bytes',
+      ),
     ]),
   },
   Finalize: {

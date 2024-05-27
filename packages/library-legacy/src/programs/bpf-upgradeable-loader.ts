@@ -133,7 +133,7 @@ export class BpfUpgradeableLoaderInstruction {
       accountPubkey: instruction.keys[0].pubkey,
       authorityPubkey: instruction.keys[1].pubkey,
       offset,
-      bytes,
+      bytes: new Uint8Array(bytes),
     };
   }
 
@@ -293,7 +293,9 @@ type BpfUpgradeableLoaderInstructionInputData = {
   InitializeBuffer: IInstructionInputData;
   Write: IInstructionInputData & {
     offset: number;
-    bytes: Uint8Array;
+    bytesLength: number;
+    bytesLengthPadding: number;
+    bytes: number[];
   };
   DeployWithMaxDataLen: IInstructionInputData & {
     maxDataLen: number;
@@ -327,7 +329,13 @@ export const BPF_UPGRADEABLE_LOADER_INSTRUCTION_LAYOUTS = Object.freeze<{
     layout: BufferLayout.struct<BpfUpgradeableLoaderInstructionInputData['Write']>([
       BufferLayout.u32('instruction'),
       BufferLayout.u32('offset'),
-      BufferLayout.blob(BufferLayout.greedy(BufferLayout.u8().span), 'bytes'),
+      BufferLayout.u32('bytesLength'),
+      BufferLayout.u32('bytesLengthPadding'),
+      BufferLayout.seq(
+          BufferLayout.u8('byte'),
+          BufferLayout.offset(BufferLayout.u32(), -8),
+          'bytes',
+      ),
     ]),
   },
   DeployWithMaxDataLen: {
