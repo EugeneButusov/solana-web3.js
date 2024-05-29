@@ -702,8 +702,8 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
     layout: BufferLayout.struct<VoteInstructionInputData['Vote']>([
       BufferLayout.u32('instruction'),
       BufferLayout.struct<VoteInstructionInputData['Vote']['vote']>([
-        BufferLayout.u8(), // slots.length
-        BufferLayout.seq(BufferLayout.nu64(), BufferLayout.offset(BufferLayout.u8(), -1), 'slots'),
+        BufferLayout.nu64(), // slots.length
+        BufferLayout.seq(BufferLayout.nu64(), BufferLayout.offset(BufferLayout.u32(), -8), 'slots'),
         Layout.publicKey('hash'),
         new COptionTimestampLayout('timestamp'),
       ], 'vote'),
