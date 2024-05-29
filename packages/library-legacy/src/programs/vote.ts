@@ -14,6 +14,7 @@ import {Transaction, TransactionInstruction} from '../transaction';
 import {toBuffer} from '../utils/to-buffer';
 import { Lockout } from '../vote-account';
 import { publicKey, rustString } from '../layout';
+import { COptionTimestampLayout } from '../utils/serialization';
 
 /**
  * Vote account info
@@ -95,7 +96,7 @@ export type VoteParams = {
   vote: {
     slots: number[];
     hash: PublicKey;
-    timestamp: number;
+    timestamp?: number;
   };
 };
 
@@ -417,7 +418,7 @@ export class VoteInstruction {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 2);
 
-    const { voteStateUpdate: { lockouts, root, hash, timestampOption, timestamp }  } = decodeData(
+    const { voteStateUpdate: { lockouts, root, hash, timestamp }  } = decodeData(
         VOTE_INSTRUCTION_LAYOUTS.UpdateVoteState,
         instruction.data,
     );
@@ -429,7 +430,7 @@ export class VoteInstruction {
         lockouts,
         root,
         hash: new PublicKey(hash),
-        timestamp: timestampOption ? timestamp : undefined,
+        timestamp: timestamp ?? undefined,
       },
     };
   }
@@ -452,7 +453,7 @@ export class VoteInstruction {
         lockouts: voteStateUpdate.lockouts,
         root: voteStateUpdate.root,
         hash: new PublicKey(voteStateUpdate.hash),
-        timestamp: voteStateUpdate.timestampOption ? voteStateUpdate.timestamp : undefined,
+        timestamp: voteStateUpdate.timestamp ?? undefined,
       },
       hash: new PublicKey(hash),
     };
@@ -467,7 +468,7 @@ export class VoteInstruction {
     this.checkProgramId(instruction.programId);
     this.checkKeyLength(instruction.keys, 2);
 
-    const { voteStateUpdate: { lockoutOffsets, root, hash, timestampOption, timestamp }  } = decodeData(
+    const { voteStateUpdate: { lockoutOffsets, root, hash, timestamp }  } = decodeData(
       VOTE_INSTRUCTION_LAYOUTS.CompactUpdateVoteState,
       instruction.data,
     );
@@ -488,7 +489,7 @@ export class VoteInstruction {
         ),
         root,
         hash: new PublicKey(hash),
-        timestamp: timestampOption ? timestamp : undefined,
+        timestamp: timestamp ?? undefined,
       },
     };
   }
@@ -523,7 +524,7 @@ export class VoteInstruction {
         ),
         root: voteStateUpdate.root,
         hash: new PublicKey(voteStateUpdate.hash),
-        timestamp: voteStateUpdate.timestampOption ? voteStateUpdate.timestamp : undefined,
+        timestamp: voteStateUpdate.timestamp ?? undefined,
       },
       hash: new PublicKey(hash),
     };
@@ -615,7 +616,6 @@ type VoteInstructionInputData = {
       }[];
       root: number;
       hash: Uint8Array,
-      timestampOption: number;
       timestamp?: number;
     };
   };
@@ -627,7 +627,6 @@ type VoteInstructionInputData = {
       }[];
       root: number;
       hash: Uint8Array,
-      timestampOption: number;
       timestamp?: number;
     };
     hash: Uint8Array,
@@ -636,7 +635,7 @@ type VoteInstructionInputData = {
     vote: {
       slots: number[];
       hash: Uint8Array;
-      timestamp: number;
+      timestamp?: number;
     };
   };
   UpdateCommission: IInstructionInputData & {
@@ -646,7 +645,7 @@ type VoteInstructionInputData = {
     vote: {
       slots: number[];
       hash: Uint8Array;
-      timestamp: number;
+      timestamp?: number;
     };
     hash: Uint8Array;
   };
@@ -661,7 +660,6 @@ type VoteInstructionInputData = {
       }[];
       root: number;
       hash: Uint8Array;
-      timestampOption: number;
       timestamp?: number;
     };
   };
@@ -673,7 +671,6 @@ type VoteInstructionInputData = {
       }[];
       root: number;
       hash: Uint8Array;
-      timestampOption: number;
       timestamp?: number;
     };
     hash: Uint8Array;
@@ -708,8 +705,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
         BufferLayout.u8(), // slots.length
         BufferLayout.seq(BufferLayout.nu64(), BufferLayout.offset(BufferLayout.u8(), -1), 'slots'),
         Layout.publicKey('hash'),
-        BufferLayout.u8('timestampOption'),
-        BufferLayout.nu64('timestamp'),
+        new COptionTimestampLayout('timestamp'),
       ], 'vote'),
     ]),
   },
@@ -741,8 +737,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
         BufferLayout.u8(), // slots.length
         BufferLayout.seq(BufferLayout.nu64(), BufferLayout.offset(BufferLayout.u8(), -1), 'slots'),
         Layout.publicKey('hash'),
-        BufferLayout.u8('timestampOption'),
-        BufferLayout.nu64('timestamp'),
+        new COptionTimestampLayout('timestamp'),
       ], 'vote'),
       Layout.publicKey('hash'),
     ]),
@@ -765,8 +760,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
           BufferLayout.u32('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockouts'),
         Layout.publicKey('hash'),
-        BufferLayout.u8('timestampOption'),
-        BufferLayout.nu64('timestamp'),
+        new COptionTimestampLayout('timestamp'),
       ], 'voteStateUpdate'),
     ]),
   },
@@ -781,8 +775,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
           BufferLayout.u32('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockouts'),
         Layout.publicKey('hash'),
-        BufferLayout.u8('timestampOption'),
-        BufferLayout.nu64('timestamp'),
+        new COptionTimestampLayout('timestamp'),
       ], 'voteStateUpdate'),
       Layout.publicKey('hash'),
     ]),
@@ -820,8 +813,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
           BufferLayout.u8('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
         Layout.publicKey('hash'),
-        BufferLayout.u8('timestampOption'),
-        BufferLayout.nu64('timestamp'),
+        new COptionTimestampLayout('timestamp'),
       ], 'voteStateUpdate'),
     ]),
   },
@@ -837,8 +829,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
           BufferLayout.u8('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
         Layout.publicKey('hash'),
-        BufferLayout.u8('timestampOption'),
-        BufferLayout.nu64('timestamp'),
+        new COptionTimestampLayout('timestamp'),
       ], 'voteStateUpdate'),
       Layout.publicKey('hash'),
     ]),
@@ -1106,7 +1097,6 @@ export class VoteProgram {
         }),
         root,
         hash: toBuffer(hash.toBuffer()),
-        timestampOption: timestamp !== undefined ? 1 : 0,
         timestamp: timestamp !== undefined ? timestamp : 0,
       },
     };
