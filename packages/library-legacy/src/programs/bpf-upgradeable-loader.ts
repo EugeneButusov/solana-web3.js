@@ -357,23 +357,23 @@ export const BPF_UPGRADEABLE_LOADER_INSTRUCTION_LAYOUTS = Object.freeze<{
       BufferLayout.u32('instruction'),
     ]),
   },
-  SetAuthorityChecked: {
-    index: 5,
-    layout: BufferLayout.struct<BpfUpgradeableLoaderInstructionInputData['SetAuthorityChecked']>([
-      BufferLayout.u32('instruction'),
-    ]),
-  },
   Close: {
-    index: 6,
+    index: 5,
     layout: BufferLayout.struct<BpfUpgradeableLoaderInstructionInputData['Close']>([
       BufferLayout.u32('instruction'),
     ]),
   },
   ExtendProgram: {
-    index: 7,
+    index: 6,
     layout: BufferLayout.struct<BpfUpgradeableLoaderInstructionInputData['ExtendProgram']>([
       BufferLayout.u32('instruction'),
       BufferLayout.u32('additionalBytes'),
+    ]),
+  },
+  SetAuthorityChecked: {
+    index: 7,
+    layout: BufferLayout.struct<BpfUpgradeableLoaderInstructionInputData['SetAuthorityChecked']>([
+      BufferLayout.u32('instruction'),
     ]),
   },
 });
