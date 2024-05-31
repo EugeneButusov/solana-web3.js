@@ -39,7 +39,7 @@ export class COptionTimestampLayout extends Layout<number | undefined> {
 
 export class CVarintLayout extends Layout<number> {
   constructor(property?: string | undefined) {
-    super(0, property);
+    super(-1, property);
   }
 
   private hasMostSignificantBit(val: number): boolean {
@@ -71,7 +71,7 @@ export class CVarintLayout extends Layout<number> {
 
   getSpan(buffer?: Uint8Array, offset = 0): number {
     if (!buffer) {
-      return 1;
+      throw new Error('getSpan: buffer is required');
     }
     let bytesRead = 0;
 
