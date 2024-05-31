@@ -36,3 +36,53 @@ export class COptionTimestampLayout extends Layout<number | undefined> {
     return 1 + this.timestampLayout.span;
   }
 }
+
+export class CVarintLayout extends Layout<number> {
+  constructor(property?: string | undefined) {
+    super(0, property);
+  }
+
+  private hasMostSignificantBit(val: number): boolean {
+    return (val & 0b10000000) !== 0;
+  }
+
+  decode(buffer: Uint8Array, offset = 0): number {
+    let bytesRead = 0;
+    let shiftAmount = 0;
+    let decodedValue = 0;
+
+    do {
+      const nextByte = buffer[offset + bytesRead];
+      bytesRead += 1;
+      decodedValue |= (nextByte & 0b01111111) << shiftAmount;
+      if (this.hasMostSignificantBit(nextByte)) {
+        shiftAmount += 7;
+      } else {
+        return decodedValue;
+      }
+    } while(buffer.length > offset + bytesRead);
+
+    throw new Error('Offset out of range');
+  }
+
+  encode(): number {
+    throw new Error('Not implemented');
+  }
+
+  getSpan(buffer?: Uint8Array, offset = 0): number {
+    if (!buffer) {
+      return 1;
+    }
+    let bytesRead = 0;
+
+    do {
+      const nextByte = buffer[offset + bytesRead];
+      bytesRead += 1;
+      if (!this.hasMostSignificantBit(nextByte)) {
+        return bytesRead;
+      }
+    } while(buffer.length > offset + bytesRead);
+
+    throw new Error('Offset out of range');
+  }
+}

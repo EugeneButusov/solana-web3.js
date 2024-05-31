@@ -14,7 +14,7 @@ import {Transaction, TransactionInstruction} from '../transaction';
 import {toBuffer} from '../utils/to-buffer';
 import { Lockout } from '../vote-account';
 import { publicKey, rustString } from '../layout';
-import { COptionTimestampLayout } from '../utils/serialization';
+import { COptionTimestampLayout, CVarintLayout } from '../utils/serialization';
 
 /**
  * Vote account info
@@ -809,7 +809,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
         BufferLayout.nu64('root'),
         BufferLayout.u8(), // lockoutOffsets.length
         BufferLayout.seq(BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']['lockoutOffsets'][number]>([
-          BufferLayout.u8('offset'),
+          new CVarintLayout('offset'),
           BufferLayout.u8('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
         Layout.publicKey('hash'),
@@ -825,7 +825,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
         BufferLayout.nu64('root'),
         BufferLayout.u8(), // lockoutOffsets.length
         BufferLayout.seq(BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']['lockoutOffsets'][number]>([
-          BufferLayout.u8('offset'),
+          new CVarintLayout('slot'),
           BufferLayout.u8('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
         Layout.publicKey('hash'),
