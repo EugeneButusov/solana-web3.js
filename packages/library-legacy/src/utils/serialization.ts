@@ -1,6 +1,41 @@
 import { Layout, NearUInt64 } from '@solana/buffer-layout';
 import * as BufferLayout from '@solana/buffer-layout';
 
+export class COptionLayout<T> extends Layout<T | undefined> {
+    private innerLayout: Layout<T>;
+
+    constructor(innerLayout: Layout<T>, property?: string | undefined) {
+        super(-1, property);
+        this.innerLayout = innerLayout;
+    }
+
+    decode(buffer: Uint8Array, offset = 0): T | undefined {
+        const option = buffer[offset];
+        if (option === 0) {
+        return undefined;
+        }
+        return this.innerLayout.decode(buffer, offset + 1);
+    }
+
+    encode(src: T | undefined, buffer: Uint8Array, offset = 0): number {
+        if (src === undefined) {
+        buffer[offset] = 0;
+        return 1;
+        } else {
+        buffer[offset] = 1;
+        return 1 + this.innerLayout.encode(src, buffer, offset + 1);
+        }
+    }
+
+    getSpan(buffer?: Uint8Array, offset = 0): number {
+        if (buffer) {
+        const option = buffer[offset];
+        return option === 0 ? 1 : 1 + this.innerLayout.getSpan(buffer, offset + 1);
+        }
+        return 1 + this.innerLayout.span;
+    }
+}
+
 export class COptionTimestampLayout extends Layout<number | undefined> {
   private timestampLayout: NearUInt64;
 

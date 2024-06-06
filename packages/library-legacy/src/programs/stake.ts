@@ -55,16 +55,16 @@ type AuthorizedRaw = Readonly<{
  */
 export class Lockup {
   /** Unix timestamp of lockup expiration */
-  unixTimestamp: number;
+  unixTimestamp?: number;
   /** Epoch of lockup expiration */
-  epoch: number;
+  epoch?: number;
   /** Lockup custodian authority */
-  custodian: PublicKey;
+  custodian?: PublicKey;
 
   /**
    * Create a new Lockup object
    */
-  constructor(unixTimestamp: number, epoch: number, custodian: PublicKey) {
+  constructor(unixTimestamp?: number, epoch?: number, custodian?: PublicKey) {
     this.unixTimestamp = unixTimestamp;
     this.epoch = epoch;
     this.custodian = custodian;
@@ -77,9 +77,9 @@ export class Lockup {
 }
 
 type LockupRaw = Readonly<{
-  custodian: Uint8Array;
-  epoch: number;
-  unixTimestamp: number;
+  custodian?: Uint8Array;
+  epoch?: number;
+  unixTimestamp?: number;
 }>;
 
 /**
@@ -294,7 +294,7 @@ export class StakeInstruction {
       lockup: new Lockup(
         lockup.unixTimestamp,
         lockup.epoch,
-        new PublicKey(lockup.custodian),
+        lockup.custodian && new PublicKey(lockup.custodian),
       ),
     };
   }
@@ -416,7 +416,7 @@ export class StakeInstruction {
       lockup: rawLockup && {
         unixTimestamp: rawLockup.unixTimestamp,
         epoch: rawLockup.epoch,
-        custodian: new PublicKey(rawLockup.custodian),
+        custodian: rawLockup.custodian && new PublicKey(rawLockup.custodian),
       },
     };
   }
@@ -909,7 +909,7 @@ export class StakeProgram {
       lockup: {
         unixTimestamp: lockup.unixTimestamp,
         epoch: lockup.epoch,
-        custodian: toBuffer(lockup.custodian.toBuffer()),
+        custodian: lockup.custodian && toBuffer(lockup.custodian.toBuffer()),
       },
     });
     const instructionData = {

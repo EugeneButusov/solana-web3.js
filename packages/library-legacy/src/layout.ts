@@ -2,6 +2,7 @@ import {Buffer} from 'buffer';
 import * as BufferLayout from '@solana/buffer-layout';
 
 import {VoteAuthorizeWithSeedArgs} from './programs/vote';
+import { COptionLayout } from './utils/serialization';
 
 /**
  * Layout for a public key
@@ -107,15 +108,15 @@ export const authorized = (property: string = 'authorized') => {
 export const lockup = (property: string = 'lockup') => {
   return BufferLayout.struct<
     Readonly<{
-      custodian: Uint8Array;
-      epoch: number;
-      unixTimestamp: number;
+      custodian?: Uint8Array;
+      epoch?: number;
+      unixTimestamp?: number;
     }>
   >(
     [
-      BufferLayout.ns64('unixTimestamp'),
-      BufferLayout.ns64('epoch'),
-      publicKey('custodian'),
+      new COptionLayout(BufferLayout.ns64('unixTimestamp'), 'unixTimestamp'),
+      new COptionLayout(BufferLayout.ns64('epoch'), 'epoch'),
+      new COptionLayout(publicKey('custodian'), 'custodian'),
     ],
     property,
   );
