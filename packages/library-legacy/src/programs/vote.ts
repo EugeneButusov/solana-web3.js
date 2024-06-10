@@ -825,7 +825,7 @@ const VOTE_INSTRUCTION_LAYOUTS = Object.freeze<{
         BufferLayout.nu64('root'),
         BufferLayout.u8(), // lockoutOffsets.length
         BufferLayout.seq(BufferLayout.struct<VoteInstructionInputData['CompactUpdateVoteState']['voteStateUpdate']['lockoutOffsets'][number]>([
-          new CVarintLayout('slot'),
+          new CVarintLayout('offset'),
           BufferLayout.u8('confirmationCount'),
         ]), BufferLayout.offset(BufferLayout.u8(), -1), 'lockoutOffsets'),
         Layout.publicKey('hash'),
